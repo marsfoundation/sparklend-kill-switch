@@ -4,12 +4,16 @@ pragma solidity ^0.8.0;
 import { Ownable }       from "lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 import { EnumerableSet } from "lib/openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol";
 
-import { AggregatorInterface } from "lib/aave-v3-core/contracts/dependencies/chainlink/AggregatorInterface.sol";
-import { IPoolConfigurator }   from "lib/aave-v3-core/contracts/interfaces/IPoolConfigurator.sol";
+import { AggregatorInterface }  from "lib/aave-v3-core/contracts/dependencies/chainlink/AggregatorInterface.sol";
+import { IPool }                from "lib/aave-v3-core/contracts/interfaces/IPool.sol";
+import { IPoolConfigurator }    from "lib/aave-v3-core/contracts/interfaces/IPoolConfigurator.sol";
+import { ReserveConfiguration } from "lib/aave-v3-core/contracts/protocol/libraries/configuration/ReserveConfiguration.sol";
+import { DataTypes }            from "lib/aave-v3-core/contracts/protocol/libraries/types/DataTypes.sol";
 
 contract KillSwitchOracle is Ownable {
 
-    using EnumerableSet for EnumerableSet.AddressSet;
+    using EnumerableSet        for EnumerableSet.AddressSet;
+    using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
 
     /******************************************************************************************************************/
     /*** Events                                                                                                     ***/
@@ -28,6 +32,7 @@ contract KillSwitchOracle is Ownable {
     /*** Declarations and Constructor                                                                               ***/
     /******************************************************************************************************************/
 
+    IPool             public immutable pool;
     IPoolConfigurator public immutable poolConfigurator;
 
     bool public inLockdown;
@@ -38,7 +43,11 @@ contract KillSwitchOracle is Ownable {
 
     mapping(address => uint256) public oracleThresholds;
 
-    constructor(IPoolConfigurator _poolConfigurator) Ownable(msg.sender) {
+    constructor(
+        IPool _pool,
+        IPoolConfigurator _poolConfigurator
+    ) Ownable(msg.sender) {
+        pool             = _pool;
         poolConfigurator = _poolConfigurator;
     }
 
@@ -155,7 +164,14 @@ contract KillSwitchOracle is Ownable {
             poolConfigurator.setReserveFreeze(_freezeAssets.at(i), true);
         }
         for (uint256 i = 0; i < _collateralAssets.length(); i++) {
-            poolConfigurator.setReserveFreeze(_collateralAssets.at(i), true);
+            address asset = _collateralAssets.at(i);
+            DataTypes.ReserveConfigurationMap memory currentConfig = pool.getConfiguration(asset);
+            poolConfigurator.configureReserveAsCollateral(
+                asset,
+                0,
+                currentConfig.getLiquidationThreshold(),
+                currentConfig.getLiquidationBonus()
+            );
         }
 
         emit Trigger(oracle, threshold, uint256(price));
