@@ -19,13 +19,11 @@ contract KillSwitchOracle is Ownable {
     /*** Events                                                                                                     ***/
     /******************************************************************************************************************/
 
-    event AddFreezeAsset(address asset);
-    event RemoveFreezeAsset(address asset);
-    event AddCollateralAsset(address asset);
-    event RemoveCollateralAsset(address asset);
     event SetOracle(address oracle, uint256 threshold);
     event DisableOracle(address oracle);
     event Trigger(address oracle, uint256 threshold, uint256 price);
+    event AssetLTV0(address asset);
+    event AssetFrozen(address asset);
     event Reset();
 
     /******************************************************************************************************************/
@@ -37,8 +35,6 @@ contract KillSwitchOracle is Ownable {
 
     bool public inLockdown;
 
-    EnumerableSet.AddressSet private _freezeAssets;
-    EnumerableSet.AddressSet private _collateralAssets;
     EnumerableSet.AddressSet private _oracles;
 
     mapping(address => uint256) public oracleThresholds;
@@ -54,30 +50,6 @@ contract KillSwitchOracle is Ownable {
     /******************************************************************************************************************/
     /*** Owner Functions                                                                                            ***/
     /******************************************************************************************************************/
-
-    function addFreezeAsset(address asset) external onlyOwner {
-        require(_freezeAssets.add(asset), "KillSwitchOracle/already-exists");
-
-        emit AddFreezeAsset(asset);
-    }
-
-    function removeFreezeAsset(address asset) external onlyOwner {
-        require(_freezeAssets.remove(asset), "KillSwitchOracle/does-not-exist");
-
-        emit RemoveFreezeAsset(asset);
-    }
-
-    function addCollateralAsset(address asset) external onlyOwner {
-        require(_collateralAssets.add(asset), "KillSwitchOracle/already-exists");
-
-        emit AddCollateralAsset(asset);
-    }
-
-    function removeCollateralAsset(address asset) external onlyOwner {
-        require(_collateralAssets.remove(asset), "KillSwitchOracle/does-not-exist");
-
-        emit RemoveCollateralAsset(asset);
-    }
 
     function setOracle(address oracle, uint256 threshold) external onlyOwner {
         oracleThresholds[oracle] = threshold;
@@ -107,32 +79,6 @@ contract KillSwitchOracle is Ownable {
     /*** Getter Functions                                                                                           ***/
     /******************************************************************************************************************/
 
-    function numFreezeAssets() external view returns (uint256) {
-        return _freezeAssets.length();
-    }
-    function freezeAssetAt(uint256 index) external view returns (address) {
-        return _freezeAssets.at(index);
-    }
-    function hasFreezeAsset(address asset) external view returns (bool) {
-        return _freezeAssets.contains(asset);
-    }
-    function freezeAssets() external view returns (address[] memory) {
-        return _freezeAssets.values();
-    }
-
-    function numCollateralAssets() external view returns (uint256) {
-        return _collateralAssets.length();
-    }
-    function collateralAssetAt(uint256 index) external view returns (address) {
-        return _collateralAssets.at(index);
-    }
-    function hasCollateralAsset(address asset) external view returns (bool) {
-        return _collateralAssets.contains(asset);
-    }
-    function collateralAssets() external view returns (address[] memory) {
-        return _collateralAssets.values();
-    }
-
     function numOracles() external view returns (uint256) {
         return _oracles.length();
     }
@@ -159,22 +105,40 @@ contract KillSwitchOracle is Ownable {
         require(uint256(price) <= threshold, "KillSwitchOracle/price-not-below-bound");
 
         inLockdown = true;
-
-        for (uint256 i = 0; i < _freezeAssets.length(); i++) {
-            poolConfigurator.setReserveFreeze(_freezeAssets.at(i), true);
-        }
-        for (uint256 i = 0; i < _collateralAssets.length(); i++) {
-            address asset = _collateralAssets.at(i);
-            DataTypes.ReserveConfigurationMap memory currentConfig = pool.getConfiguration(asset);
-            poolConfigurator.configureReserveAsCollateral(
-                asset,
-                0,
-                currentConfig.getLiquidationThreshold(),
-                currentConfig.getLiquidationBonus()
-            );
-        }
-
         emit Trigger(oracle, threshold, uint256(price));
+
+        address[] memory assets = pool.getReservesList();
+        for (uint256 i = 0; i < assets.length; i++) {
+            address asset = assets[i];
+            DataTypes.ReserveConfigurationMap memory config = pool.getConfiguration(asset);
+
+            // Skip all assets that are not active, frozen, or paused
+            if (
+                !config.getActive() ||
+                config.getFrozen() ||
+                config.getPaused()
+            ) continue;
+
+            uint256 ltv = config.getLtv();
+            if (ltv > 0) {
+                // This asset is being used as collateral
+                // We only want to disable new borrows against this to allow users
+                // to top up their positions to prevent getting liquidated
+                poolConfigurator.configureReserveAsCollateral(
+                    asset,
+                    0,
+                    config.getLiquidationThreshold(),
+                    config.getLiquidationBonus()
+                );
+
+                emit AssetLTV0(asset);
+            } else {
+                // This is a borrow-only asset
+                poolConfigurator.setReserveFreeze(asset, true);
+
+                emit AssetFrozen(asset);
+            }
+        }
     }
 
 }
