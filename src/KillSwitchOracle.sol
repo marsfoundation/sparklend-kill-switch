@@ -1,8 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0
 pragma solidity ^0.8.0;
 
-import { Ownable }       from "openzeppelin-contracts/access/Ownable.sol";
-import { EnumerableSet } from "openzeppelin-contracts/utils/structs/EnumerableSet.sol";
+import { Ownable }       from "lib/openzeppelin-contracts/contracts/access/Ownable.sol";
+import { EnumerableSet } from "lib/openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol";
+
+import { AggregatorInterface } from "lib/aave-v3-core/contracts/dependencies/chainlink/AggregatorInterface.sol";
+import { IPoolConfigurator }   from "lib/aave-v3-core/contracts/interfaces/IPoolConfigurator.sol";
 
 contract KillSwitchOracle is Ownable {
 
@@ -16,23 +19,27 @@ contract KillSwitchOracle is Ownable {
     event RemoveFreezeAsset(address asset);
     event AddCollateralAsset(address asset);
     event RemoveCollateralAsset(address asset);
-    event SetOracle(address oracle, uint256 lowerPriceBound);
+    event SetOracle(address oracle, uint256 threshold);
     event DisableOracle(address oracle);
-    event Trigger();
+    event Trigger(address oracle, uint256 threshold, uint256 price);
     event Reset();
 
     /******************************************************************************************************************/
     /*** Declarations and Constructor                                                                               ***/
     /******************************************************************************************************************/
 
+    IPoolConfigurator public immutable poolConfigurator;
+
     bool public inLockdown;
 
     EnumerableSet.AddressSet private _freezeAssets;
     EnumerableSet.AddressSet private _collateralAssets;
+    EnumerableSet.AddressSet private _oracles;
 
-    mapping(address => uint256) public oracles;
+    mapping(address => uint256) public oracleThresholds;
 
-    constructor() Ownable(msg.sender) {
+    constructor(IPoolConfigurator _poolConfigurator) Ownable(msg.sender) {
+        poolConfigurator = _poolConfigurator;
     }
 
     /******************************************************************************************************************/
@@ -63,16 +70,18 @@ contract KillSwitchOracle is Ownable {
         emit RemoveCollateralAsset(asset);
     }
 
-    function setOracle(address oracle, uint256 lowerPriceBound) external onlyOwner {
-        oracles[oracle] = lowerPriceBound;
+    function setOracle(address oracle, uint256 threshold) external onlyOwner {
+        oracleThresholds[oracle] = threshold;
+        _oracles.add(oracle);  // It's okay to add the same oracle multiple times
 
-        emit SetOracle(oracle, lowerPriceBound);
+        emit SetOracle(oracle, threshold);
     }
 
     function disableOracle(address oracle) external onlyOwner {
-        require(oracles[oracle] != 0, "KillSwitchOracle/does-not-exist");
+        require(oracleThresholds[oracle] != 0, "KillSwitchOracle/does-not-exist");
 
-        delete oracles[oracle];
+        _oracles.remove(oracle);
+        delete oracleThresholds[oracle];
 
         emit DisableOracle(oracle);
     }
@@ -92,11 +101,11 @@ contract KillSwitchOracle is Ownable {
     function numFreezeAssets() external view returns (uint256) {
         return _freezeAssets.length();
     }
-    function freezeAssetsAt(uint256 index) external view returns (address) {
+    function freezeAssetAt(uint256 index) external view returns (address) {
         return _freezeAssets.at(index);
     }
-    function hasFreezeAsset(address domain) external view returns (bool) {
-        return _freezeAssets.contains(domain);
+    function hasFreezeAsset(address asset) external view returns (bool) {
+        return _freezeAssets.contains(asset);
     }
     function freezeAssets() external view returns (address[] memory) {
         return _freezeAssets.values();
@@ -105,14 +114,27 @@ contract KillSwitchOracle is Ownable {
     function numCollateralAssets() external view returns (uint256) {
         return _collateralAssets.length();
     }
-    function collateralAssetsAt(uint256 index) external view returns (address) {
+    function collateralAssetAt(uint256 index) external view returns (address) {
         return _collateralAssets.at(index);
     }
-    function hasCollateralAsset(address domain) external view returns (bool) {
-        return _collateralAssets.contains(domain);
+    function hasCollateralAsset(address asset) external view returns (bool) {
+        return _collateralAssets.contains(asset);
     }
     function collateralAssets() external view returns (address[] memory) {
         return _collateralAssets.values();
+    }
+
+    function numOracles() external view returns (uint256) {
+        return _oracles.length();
+    }
+    function oracleAt(uint256 index) external view returns (address) {
+        return _oracles.at(index);
+    }
+    function hasOracle(address oracle) external view returns (bool) {
+        return _oracles.contains(oracle);
+    }
+    function oracles() external view returns (address[] memory) {
+        return _oracles.values();
     }
 
     /******************************************************************************************************************/
@@ -120,7 +142,23 @@ contract KillSwitchOracle is Ownable {
     /******************************************************************************************************************/
 
     function trigger(address oracle) external {
-        require(_freezeAssets.add(asset), "KillSwitchOracle/already-exists");
+        uint256 threshold = oracleThresholds[oracle];
+        require(threshold != 0, "KillSwitchOracle/does-not-exist");
+
+        int256 price = AggregatorInterface(oracle).latestAnswer();
+        require(price > 0,                   "KillSwitchOracle/invalid-price");
+        require(uint256(price) <= threshold, "KillSwitchOracle/price-not-below-bound");
+
+        inLockdown = true;
+
+        for (uint256 i = 0; i < _freezeAssets.length(); i++) {
+            poolConfigurator.setReserveFreeze(_freezeAssets.at(i), true);
+        }
+        for (uint256 i = 0; i < _collateralAssets.length(); i++) {
+            poolConfigurator.setReserveFreeze(_collateralAssets.at(i), true);
+        }
+
+        emit Trigger(oracle, threshold, uint256(price));
     }
 
 }
