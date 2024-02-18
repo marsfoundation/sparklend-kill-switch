@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.13;
 
 import { Ownable }       from "lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 import { EnumerableSet } from "lib/openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol";
@@ -31,7 +31,7 @@ contract KillSwitchOracle is IKillSwitchOracle, Ownable {
     mapping(address => uint256) public override oracleThresholds;
 
     constructor(
-        IPool _pool,
+        IPool             _pool,
         IPoolConfigurator _poolConfigurator
     ) Ownable(msg.sender) {
         pool             = _pool;
