@@ -39,6 +39,7 @@ contract KillSwitchOracleTest is Test {
     address asset2 = makeAddr("asset2");
     address asset3 = makeAddr("asset3");
     address asset4 = makeAddr("asset4");
+    address asset5 = makeAddr("asset5");
 
     function setUp() public {
         pool             = new MockPool();
@@ -275,7 +276,18 @@ contract KillSwitchOracleTest is Test {
             liquidationBonus: 105_00
         });
 
-        assertEq(pool.getReservesList().length, 4);
+        // Inactive asset
+        _initReserve({
+            asset: asset5,
+            active: false,
+            frozen: false,
+            paused: false,
+            ltv: 0,
+            liquidationThreshold: 0,
+            liquidationBonus: 0
+        });
+
+        assertEq(pool.getReservesList().length, 5);
 
         vm.prank(owner);
         killSwitchOracle.setOracle(address(oracle), 0.99e8);
@@ -328,6 +340,16 @@ contract KillSwitchOracleTest is Test {
             ltv: 80_00,
             liquidationThreshold: 83_00,
             liquidationBonus: 105_00
+        });
+
+        _assertReserve({
+            asset: asset5,
+            active: false,
+            frozen: false,
+            paused: false,
+            ltv: 0,
+            liquidationThreshold: 0,
+            liquidationBonus: 0
         });
     }
 
