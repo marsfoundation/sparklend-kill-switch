@@ -10,34 +10,25 @@ import { IPoolConfigurator }    from "lib/aave-v3-core/contracts/interfaces/IPoo
 import { ReserveConfiguration } from "lib/aave-v3-core/contracts/protocol/libraries/configuration/ReserveConfiguration.sol";
 import { DataTypes }            from "lib/aave-v3-core/contracts/protocol/libraries/types/DataTypes.sol";
 
-contract KillSwitchOracle is Ownable {
+import { IKillSwitchOracle } from "src/interfaces/IKillSwitchOracle.sol";
+
+contract KillSwitchOracle is IKillSwitchOracle, Ownable {
 
     using EnumerableSet        for EnumerableSet.AddressSet;
     using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
 
     /******************************************************************************************************************/
-    /*** Events                                                                                                     ***/
-    /******************************************************************************************************************/
-
-    event SetOracle(address oracle, uint256 threshold);
-    event DisableOracle(address oracle);
-    event Trigger(address oracle, uint256 threshold, uint256 price);
-    event AssetLTV0(address asset);
-    event AssetFrozen(address asset);
-    event Reset();
-
-    /******************************************************************************************************************/
     /*** Declarations and Constructor                                                                               ***/
     /******************************************************************************************************************/
 
-    IPool             public immutable pool;
-    IPoolConfigurator public immutable poolConfigurator;
+    IPool             public override immutable pool;
+    IPoolConfigurator public override immutable poolConfigurator;
 
-    bool public inLockdown;
+    bool public override triggered;
 
     EnumerableSet.AddressSet private _oracles;
 
-    mapping(address => uint256) public oracleThresholds;
+    mapping(address => uint256) public override oracleThresholds;
 
     constructor(
         IPool _pool,
@@ -51,14 +42,16 @@ contract KillSwitchOracle is Ownable {
     /*** Owner Functions                                                                                            ***/
     /******************************************************************************************************************/
 
-    function setOracle(address oracle, uint256 threshold) external onlyOwner {
+    function setOracle(address oracle, uint256 threshold) external override onlyOwner {
         oracleThresholds[oracle] = threshold;
-        _oracles.add(oracle);  // It's okay to add the same oracle multiple times
+        // It's okay to add the same oracle multiple times
+        // The EnumerableSet will make sure only 1 exists
+        _oracles.add(oracle);  
 
         emit SetOracle(oracle, threshold);
     }
 
-    function disableOracle(address oracle) external onlyOwner {
+    function disableOracle(address oracle) external override onlyOwner {
         require(oracleThresholds[oracle] != 0, "KillSwitchOracle/does-not-exist");
 
         _oracles.remove(oracle);
@@ -67,10 +60,10 @@ contract KillSwitchOracle is Ownable {
         emit DisableOracle(oracle);
     }
 
-    function reset() external onlyOwner {
-        require(inLockdown, "KillSwitchOracle/not-in-lockdown");
+    function reset() external override onlyOwner {
+        require(triggered, "KillSwitchOracle/not-triggered");
 
-        inLockdown = false;
+        triggered = false;
 
         emit Reset();
     }
@@ -79,16 +72,16 @@ contract KillSwitchOracle is Ownable {
     /*** Getter Functions                                                                                           ***/
     /******************************************************************************************************************/
 
-    function numOracles() external view returns (uint256) {
+    function numOracles() external override view returns (uint256) {
         return _oracles.length();
     }
-    function oracleAt(uint256 index) external view returns (address) {
+    function oracleAt(uint256 index) external override view returns (address) {
         return _oracles.at(index);
     }
-    function hasOracle(address oracle) external view returns (bool) {
+    function hasOracle(address oracle) external override view returns (bool) {
         return _oracles.contains(oracle);
     }
-    function oracles() external view returns (address[] memory) {
+    function oracles() external override view returns (address[] memory) {
         return _oracles.values();
     }
 
@@ -97,6 +90,8 @@ contract KillSwitchOracle is Ownable {
     /******************************************************************************************************************/
 
     function trigger(address oracle) external {
+        require(!triggered, "KillSwitchOracle/already-triggered");
+
         uint256 threshold = oracleThresholds[oracle];
         require(threshold != 0, "KillSwitchOracle/does-not-exist");
 
@@ -104,7 +99,7 @@ contract KillSwitchOracle is Ownable {
         require(price > 0,                   "KillSwitchOracle/invalid-price");
         require(uint256(price) <= threshold, "KillSwitchOracle/price-not-below-bound");
 
-        inLockdown = true;
+        triggered = true;
         emit Trigger(oracle, threshold, uint256(price));
 
         address[] memory assets = pool.getReservesList();
