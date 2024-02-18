@@ -234,57 +234,57 @@ contract KillSwitchOracleTest is Test {
     function test_trigger() public {
         // Collateral asset (Ex. ETH, wstETH, sDAI, etc)
         _initReserve({
-            asset: asset1,
-            active: true,
-            frozen: false,
-            paused: false,
-            ltv: 80_00,
+            asset:                asset1,
+            active:               true,
+            frozen:               false,
+            paused:               false,
+            ltv:                  80_00,
             liquidationThreshold: 83_00,
-            liquidationBonus: 105_00
+            liquidationBonus:     105_00
         });
 
         // Borrow-only asset (Ex. DAI, USDC, etc)
         _initReserve({
-            asset: asset2,
-            active: true,
-            frozen: false,
-            paused: false,
-            ltv: 0,
+            asset:                asset2,
+            active:               true,
+            frozen:               false,
+            paused:               false,
+            ltv:                  0,
             liquidationThreshold: 0,
-            liquidationBonus: 0
+            liquidationBonus:     0
         });
 
         // Frozen/LTV0 asset (Ex. GNO)
         _initReserve({
-            asset: asset3,
-            active: true,
-            frozen: true,
-            paused: false,
-            ltv: 0,
+            asset:                asset3,
+            active:               true,
+            frozen:               true,
+            paused:               false,
+            ltv:                  0,
             liquidationThreshold: 25_00,
-            liquidationBonus: 110_00
+            liquidationBonus:     110_00
         });
 
         // Paused asset
         _initReserve({
-            asset: asset4,
-            active: true,
-            frozen: false,
-            paused: true,
-            ltv: 80_00,
+            asset:                asset4,
+            active:               true,
+            frozen:               false,
+            paused:               true,
+            ltv:                  80_00,
             liquidationThreshold: 83_00,
-            liquidationBonus: 105_00
+            liquidationBonus:     105_00
         });
 
         // Inactive asset
         _initReserve({
-            asset: asset5,
-            active: false,
-            frozen: false,
-            paused: false,
-            ltv: 0,
+            asset:                asset5,
+            active:               false,
+            frozen:               false,
+            paused:               false,
+            ltv:                  0,
             liquidationThreshold: 0,
-            liquidationBonus: 0
+            liquidationBonus:     0
         });
 
         assertEq(pool.getReservesList().length, 5);
@@ -303,53 +303,53 @@ contract KillSwitchOracleTest is Test {
         killSwitchOracle.trigger(address(oracle));
 
         _assertReserve({
-            asset: asset1,
-            active: true,
-            frozen: false,
-            paused: false,
-            ltv: 0,
+            asset:                asset1,
+            active:               true,
+            frozen:               false,
+            paused:               false,
+            ltv:                  0,
             liquidationThreshold: 83_00,
-            liquidationBonus: 105_00
+            liquidationBonus:     105_00
         });
 
         _assertReserve({
-            asset: asset2,
-            active: true,
-            frozen: true,
-            paused: false,
-            ltv: 0,
+            asset:                asset2,
+            active:               true,
+            frozen:               true,
+            paused:               false,
+            ltv:                  0,
             liquidationThreshold: 0,
-            liquidationBonus: 0
+            liquidationBonus:     0
         });
 
         _assertReserve({
-            asset: asset3,
-            active: true,
-            frozen: true,
-            paused: false,
-            ltv: 0,
+            asset:                asset3,
+            active:               true,
+            frozen:               true,
+            paused:               false,
+            ltv:                  0,
             liquidationThreshold: 25_00,
-            liquidationBonus: 110_00
+            liquidationBonus:     110_00
         });
 
         _assertReserve({
-            asset: asset4,
-            active: true,
-            frozen: false,
-            paused: true,
-            ltv: 80_00,
+            asset:                asset4,
+            active:               true,
+            frozen:               false,
+            paused:               true,
+            ltv:                  80_00,
             liquidationThreshold: 83_00,
-            liquidationBonus: 105_00
+            liquidationBonus:     105_00
         });
 
         _assertReserve({
-            asset: asset5,
-            active: false,
-            frozen: false,
-            paused: false,
-            ltv: 0,
+            asset:                asset5,
+            active:               false,
+            frozen:               false,
+            paused:               false,
+            ltv:                  0,
             liquidationThreshold: 0,
-            liquidationBonus: 0
+            liquidationBonus:     0
         });
     }
 
