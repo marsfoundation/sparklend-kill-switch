@@ -279,4 +279,6 @@ contract KillSwitchOracleIntegrationTest is Test {
         assertEq(configuration.getLiquidationBonus(),     liquidationBonus);
     }
 
+    // TODO add some more specific checks to make sure existing users can top up collateral, repay loans and withdraw collateral.
+
 }
