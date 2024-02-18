@@ -280,5 +280,6 @@ contract KillSwitchOracleIntegrationTest is Test {
     }
 
     // TODO add some more specific checks to make sure existing users can top up collateral, repay loans and withdraw collateral.
+    // Also demonstate that users can't be liquidate or anything weird.
 
 }
