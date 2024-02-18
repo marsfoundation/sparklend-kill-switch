@@ -52,7 +52,7 @@ contract KillSwitchOracle is IKillSwitchOracle, Ownable {
     }
 
     function disableOracle(address oracle) external override onlyOwner {
-        require(oracleThresholds[oracle] != 0, "KillSwitchOracle/does-not-exist");
+        require(oracleThresholds[oracle] != 0, "KillSwitchOracle/oracle-does-not-exist");
 
         _oracles.remove(oracle);
         delete oracleThresholds[oracle];
@@ -93,11 +93,11 @@ contract KillSwitchOracle is IKillSwitchOracle, Ownable {
         require(!triggered, "KillSwitchOracle/already-triggered");
 
         uint256 threshold = oracleThresholds[oracle];
-        require(threshold != 0, "KillSwitchOracle/does-not-exist");
+        require(threshold != 0, "KillSwitchOracle/oracle-does-not-exist");
 
         int256 price = AggregatorInterface(oracle).latestAnswer();
         require(price > 0,                   "KillSwitchOracle/invalid-price");
-        require(uint256(price) <= threshold, "KillSwitchOracle/price-not-below-bound");
+        require(uint256(price) <= threshold, "KillSwitchOracle/price-above-threshold");
 
         triggered = true;
         emit Trigger(oracle, threshold, uint256(price));

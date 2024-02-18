@@ -90,7 +90,7 @@ contract KillSwitchOracleTest is Test {
     }
 
     function test_disableOracle_revertNotSet() public {
-        vm.expectRevert("KillSwitchOracle/does-not-exist");
+        vm.expectRevert("KillSwitchOracle/oracle-does-not-exist");
         vm.prank(owner);
         killSwitchOracle.disableOracle(address(oracle));
     }
@@ -170,6 +170,42 @@ contract KillSwitchOracleTest is Test {
         assertEq(killSwitchOracle.hasOracle(address(oracle)),        false);
         assertEq(killSwitchOracle.hasOracle(address(anotherOracle)), true);
         assertEq(killSwitchOracle.hasOracle(randomAddress),          false);
+    }
+
+    function test_trigger_revertAlreadyTriggered() public {
+        vm.prank(owner);
+        killSwitchOracle.setOracle(address(oracle), 1e8);
+        killSwitchOracle.trigger(address(oracle));
+
+        vm.expectRevert("KillSwitchOracle/already-triggered");
+        killSwitchOracle.trigger(address(oracle));
+    }
+
+    function test_trigger_revertDoesNotExist() public {
+        vm.prank(owner);
+        vm.expectRevert("KillSwitchOracle/oracle-does-not-exist");
+        killSwitchOracle.trigger(address(oracle));
+    }
+
+    function test_trigger_revertInvalidPrice() public {
+        vm.prank(owner);
+        killSwitchOracle.setOracle(address(oracle), 1e8);
+
+        oracle.setLatestAnswer(-1);
+        vm.expectRevert("KillSwitchOracle/invalid-price");
+        killSwitchOracle.trigger(address(oracle));
+
+        oracle.setLatestAnswer(0);
+        vm.expectRevert("KillSwitchOracle/invalid-price");
+        killSwitchOracle.trigger(address(oracle));
+    }
+
+    function test_trigger_revertPriceAboveThreshold() public {
+        vm.prank(owner);
+        killSwitchOracle.setOracle(address(oracle), 0.99e8);
+
+        vm.expectRevert("KillSwitchOracle/price-above-threshold");
+        killSwitchOracle.trigger(address(oracle));
     }
     
 }
