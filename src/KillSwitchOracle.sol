@@ -89,7 +89,7 @@ contract KillSwitchOracle is IKillSwitchOracle, Ownable {
     /*** Public Functions                                                                                           ***/
     /******************************************************************************************************************/
 
-    function trigger(address oracle) external {
+    function trigger(address oracle) external override {
         require(!triggered, "KillSwitchOracle/already-triggered");
 
         uint256 threshold = oracleThresholds[oracle];
