@@ -18,7 +18,7 @@ interface IKillSwitchOracle {
     event SetOracle(address indexed oracle, uint256 threshold);
 
     /** 
-     *  @dev  Emitted when an oracle is disabled.
+     * @dev   Emitted when an oracle is disabled.
      * @param oracle The address of the oracle being disabled.
      */
     event DisableOracle(address indexed oracle);

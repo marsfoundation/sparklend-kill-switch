@@ -68,6 +68,21 @@ contract KillSwitchOracleTest is Test {
         killSwitchOracle.setOracle(address(oracle), 0.99e8);
     }
 
+    function test_setOracle_revertThresholdZero() public {
+        vm.expectRevert("KillSwitchOracle/invalid-threshold");
+        vm.prank(owner);
+        killSwitchOracle.setOracle(address(oracle), 0);
+    }
+
+    function test_setOracle_revertThresholdSame() public {
+        vm.prank(owner);
+        killSwitchOracle.setOracle(address(oracle), 0.99e8);
+
+        vm.expectRevert("KillSwitchOracle/invalid-threshold");
+        vm.prank(owner);
+        killSwitchOracle.setOracle(address(oracle), 0.99e8);
+    }
+
     function test_setOracle() public {
         assertEq(killSwitchOracle.numOracles(),                      0);
         assertEq(killSwitchOracle.oracleThresholds(address(oracle)), 0);
