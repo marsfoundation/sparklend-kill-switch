@@ -77,12 +77,15 @@ contract KillSwitchOracle is IKillSwitchOracle, Ownable {
     function numOracles() external override view returns (uint256) {
         return _oracles.length();
     }
+
     function oracleAt(uint256 index) external override view returns (address) {
         return _oracles.at(index);
     }
+
     function hasOracle(address oracle) external override view returns (bool) {
         return _oracles.contains(oracle);
     }
+    
     function oracles() external override view returns (address[] memory) {
         return _oracles.values();
     }
