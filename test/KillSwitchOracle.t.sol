@@ -59,7 +59,13 @@ contract KillSwitchOracleTest is Test {
         assertEq(address(killSwitchOracle.poolConfigurator()), address(poolConfigurator));
         assertEq(killSwitchOracle.triggered(),                 false);
         assertEq(killSwitchOracle.numOracles(),                0);
-        assertEq(killSwitchOracle.owner(),                     owner);
+    }
+
+    function test_owner() public {
+        killSwitchOracle = new KillSwitchOracle(address(poolAddressesProvider));
+        assertEq(killSwitchOracle.owner(), address(this));
+        killSwitchOracle.transferOwnership(owner);
+        assertEq(killSwitchOracle.owner(), owner);
     }
 
     function test_setOracle_revertOnlyOwner() public {
