@@ -68,19 +68,19 @@ contract KillSwitchOracleTest is Test {
         assertEq(killSwitchOracle.owner(), owner);
     }
 
-    function test_setOracle_revertOnlyOwner() public {
+    function test_setOracle_onlyOwner() public {
         vm.expectRevert(abi.encodeWithSignature("OwnableUnauthorizedAccount(address)", randomAddress));
         vm.prank(randomAddress);
         killSwitchOracle.setOracle(address(oracle), 0.99e8);
     }
 
-    function test_setOracle_revertThresholdZero() public {
+    function test_setOracle_thresholdZero() public {
         vm.expectRevert("KillSwitchOracle/invalid-threshold");
         vm.prank(owner);
         killSwitchOracle.setOracle(address(oracle), 0);
     }
 
-    function test_setOracle_revertThresholdSame() public {
+    function test_setOracle_thresholdSame() public {
         vm.prank(owner);
         killSwitchOracle.setOracle(address(oracle), 0.99e8);
 
@@ -123,13 +123,13 @@ contract KillSwitchOracleTest is Test {
         assertEq(killSwitchOracle.oracleThresholds(address(oracle)), 0.98e8);
     }
 
-    function test_disableOracle_revertOnlyOwner() public {
+    function test_disableOracle_onlyOwner() public {
         vm.expectRevert(abi.encodeWithSignature("OwnableUnauthorizedAccount(address)", randomAddress));
         vm.prank(randomAddress);
         killSwitchOracle.disableOracle(address(oracle));
     }
 
-    function test_disableOracle_revertNotSet() public {
+    function test_disableOracle_notSet() public {
         vm.expectRevert("KillSwitchOracle/oracle-does-not-exist");
         vm.prank(owner);
         killSwitchOracle.disableOracle(address(oracle));
@@ -152,13 +152,13 @@ contract KillSwitchOracleTest is Test {
         assertEq(killSwitchOracle.oracleThresholds(address(oracle)), 0);
     }
 
-    function test_reset_revertOnlyOwner() public {
+    function test_reset_onlyOwner() public {
         vm.expectRevert(abi.encodeWithSignature("OwnableUnauthorizedAccount(address)", randomAddress));
         vm.prank(randomAddress);
         killSwitchOracle.reset();
     }
 
-    function test_reset_revertNotTriggered() public {
+    function test_reset_notTriggered() public {
         vm.expectRevert("KillSwitchOracle/not-triggered");
         vm.prank(owner);
         killSwitchOracle.reset();
@@ -181,14 +181,14 @@ contract KillSwitchOracleTest is Test {
 
     function test_oracles() public {
         address[] memory oracles = killSwitchOracle.oracles();
-        assertEq(oracles.length,                                      0);
-        assertEq(killSwitchOracle.numOracles(),                       0);
+        assertEq(oracles.length,                                     0);
+        assertEq(killSwitchOracle.numOracles(),                      0);
         assertEq(killSwitchOracle.hasOracle(address(oracle)),        false);
         assertEq(killSwitchOracle.hasOracle(address(anotherOracle)), false);
         assertEq(killSwitchOracle.hasOracle(randomAddress),          false);
 
         vm.startPrank(owner);
-        killSwitchOracle.setOracle(address(oracle), 1e8);
+        killSwitchOracle.setOracle(address(oracle),        1e8);
         killSwitchOracle.setOracle(address(anotherOracle), 1e8);
         vm.stopPrank();
 
@@ -216,7 +216,7 @@ contract KillSwitchOracleTest is Test {
         assertEq(killSwitchOracle.hasOracle(randomAddress),          false);
     }
 
-    function test_trigger_revertAlreadyTriggered() public {
+    function test_trigger_alreadyTriggered() public {
         vm.prank(owner);
         killSwitchOracle.setOracle(address(oracle), 1e8);
         killSwitchOracle.trigger(address(oracle));
@@ -225,13 +225,13 @@ contract KillSwitchOracleTest is Test {
         killSwitchOracle.trigger(address(oracle));
     }
 
-    function test_trigger_revertDoesNotExist() public {
+    function test_trigger_doesNotExist() public {
         vm.prank(owner);
         vm.expectRevert("KillSwitchOracle/oracle-does-not-exist");
         killSwitchOracle.trigger(address(oracle));
     }
 
-    function test_trigger_revertInvalidPrice() public {
+    function test_trigger_invalidPrice() public {
         vm.prank(owner);
         killSwitchOracle.setOracle(address(oracle), 1e8);
 
@@ -244,7 +244,7 @@ contract KillSwitchOracleTest is Test {
         killSwitchOracle.trigger(address(oracle));
     }
 
-    function test_trigger_revertPriceAboveThreshold() public {
+    function test_trigger_priceAboveThreshold() public {
         vm.prank(owner);
         killSwitchOracle.setOracle(address(oracle), 0.99e8);
 
