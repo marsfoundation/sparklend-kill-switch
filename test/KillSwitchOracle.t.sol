@@ -4,7 +4,6 @@ pragma solidity ^0.8.13;
 import "forge-std/Test.sol";
 
 import { IPool }                from "lib/aave-v3-core/contracts/interfaces/IPool.sol";
-import { IPoolConfigurator }    from "lib/aave-v3-core/contracts/interfaces/IPoolConfigurator.sol";
 import { ReserveConfiguration } from "lib/aave-v3-core/contracts/protocol/libraries/configuration/ReserveConfiguration.sol";
 import { DataTypes }            from "lib/aave-v3-core/contracts/protocol/libraries/types/DataTypes.sol";
 
@@ -16,6 +15,16 @@ import { MockPoolConfigurator }      from "test/mocks/MockPoolConfigurator.sol";
 import { KillSwitchOracle } from "src/KillSwitchOracle.sol";
 
 contract KillSwitchOracleTest is Test {
+
+    struct ReserveConfigParams {
+        address asset;
+        bool    active;
+        bool    frozen;
+        bool    paused;
+        uint256 ltv;
+        uint256 liquidationThreshold;
+        uint256 liquidationBonus;
+    }
 
     using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
 
@@ -253,60 +262,62 @@ contract KillSwitchOracleTest is Test {
     }
 
     function test_trigger() public {
-        // Collateral asset (Ex. ETH, wstETH, sDAI, etc)
-        _initReserve({
-            asset:                asset1,
-            active:               true,
-            frozen:               false,
-            paused:               false,
-            ltv:                  80_00,
-            liquidationThreshold: 83_00,
-            liquidationBonus:     105_00
-        });
+        ReserveConfigParams[5] memory params = [
+            // Collateral asset (Ex. ETH, wstETH, sDAI, etc)
+            ReserveConfigParams({
+                asset:                asset1,
+                active:               true,
+                frozen:               false,
+                paused:               false,
+                ltv:                  80_00,
+                liquidationThreshold: 83_00,
+                liquidationBonus:     105_00
+            }),
+            // Borrow-only asset (Ex. DAI, USDC, etc)
+            ReserveConfigParams({
+                asset:                asset2,
+                active:               true,
+                frozen:               false,
+                paused:               false,
+                ltv:                  0,
+                liquidationThreshold: 0,
+                liquidationBonus:     0
+            }),
+            // Frozen/LTV0 asset (Ex. GNO)
+            ReserveConfigParams({
+                asset:                asset3,
+                active:               true,
+                frozen:               true,
+                paused:               false,
+                ltv:                  0,
+                liquidationThreshold: 25_00,
+                liquidationBonus:     110_00
+            }),
+            // Paused asset
+            ReserveConfigParams({
+                asset:                asset4,
+                active:               true,
+                frozen:               false,
+                paused:               true,
+                ltv:                  80_00,
+                liquidationThreshold: 83_00,
+                liquidationBonus:     105_00
+            }),
+            // Inactive asset
+            ReserveConfigParams({
+                asset:                asset5,
+                active:               false,
+                frozen:               false,
+                paused:               false,
+                ltv:                  0,
+                liquidationThreshold: 0,
+                liquidationBonus:     0
+            })
+        ];
 
-        // Borrow-only asset (Ex. DAI, USDC, etc)
-        _initReserve({
-            asset:                asset2,
-            active:               true,
-            frozen:               false,
-            paused:               false,
-            ltv:                  0,
-            liquidationThreshold: 0,
-            liquidationBonus:     0
-        });
-
-        // Frozen/LTV0 asset (Ex. GNO)
-        _initReserve({
-            asset:                asset3,
-            active:               true,
-            frozen:               true,
-            paused:               false,
-            ltv:                  0,
-            liquidationThreshold: 25_00,
-            liquidationBonus:     110_00
-        });
-
-        // Paused asset
-        _initReserve({
-            asset:                asset4,
-            active:               true,
-            frozen:               false,
-            paused:               true,
-            ltv:                  80_00,
-            liquidationThreshold: 83_00,
-            liquidationBonus:     105_00
-        });
-
-        // Inactive asset
-        _initReserve({
-            asset:                asset5,
-            active:               false,
-            frozen:               false,
-            paused:               false,
-            ltv:                  0,
-            liquidationThreshold: 0,
-            liquidationBonus:     0
-        });
+        for (uint256 i = 0; i < params.length; i++) {
+            _initReserve(params[i]);
+        }
 
         assertEq(pool.getReservesList().length, 5);
 
@@ -323,92 +334,33 @@ contract KillSwitchOracleTest is Test {
         vm.prank(randomAddress);  // Permissionless call
         killSwitchOracle.trigger(address(oracle));
 
-        _assertReserve({
-            asset:                asset1,
-            active:               true,
-            frozen:               false,
-            paused:               false,
-            ltv:                  0,
-            liquidationThreshold: 83_00,
-            liquidationBonus:     105_00
-        });
+        params[0].ltv = 0;
+        params[1].frozen = true;
 
-        _assertReserve({
-            asset:                asset2,
-            active:               true,
-            frozen:               true,
-            paused:               false,
-            ltv:                  0,
-            liquidationThreshold: 0,
-            liquidationBonus:     0
-        });
-
-        _assertReserve({
-            asset:                asset3,
-            active:               true,
-            frozen:               true,
-            paused:               false,
-            ltv:                  0,
-            liquidationThreshold: 25_00,
-            liquidationBonus:     110_00
-        });
-
-        _assertReserve({
-            asset:                asset4,
-            active:               true,
-            frozen:               false,
-            paused:               true,
-            ltv:                  80_00,
-            liquidationThreshold: 83_00,
-            liquidationBonus:     105_00
-        });
-
-        _assertReserve({
-            asset:                asset5,
-            active:               false,
-            frozen:               false,
-            paused:               false,
-            ltv:                  0,
-            liquidationThreshold: 0,
-            liquidationBonus:     0
-        });
+        for (uint256 i = 0; i < params.length; i++) {
+            _assertReserve(params[i]);
+        }
     }
 
-    function _initReserve(
-        address asset,
-        bool active,
-        bool frozen,
-        bool paused,
-        uint256 ltv,
-        uint256 liquidationThreshold,
-        uint256 liquidationBonus
-    ) internal {
-        DataTypes.ReserveConfigurationMap memory configuration = pool.getConfiguration(asset);
-        configuration.setActive(active);
-        configuration.setFrozen(frozen);
-        configuration.setPaused(paused);
-        configuration.setLtv(ltv);
-        configuration.setLiquidationThreshold(liquidationThreshold);
-        configuration.setLiquidationBonus(liquidationBonus);
-        pool.__addReserve(asset, configuration);
+    function _initReserve(ReserveConfigParams memory params) internal {
+        DataTypes.ReserveConfigurationMap memory configuration = pool.getConfiguration(params.asset);
+        configuration.setActive(params.active);
+        configuration.setFrozen(params.frozen);
+        configuration.setPaused(params.paused);
+        configuration.setLtv(params.ltv);
+        configuration.setLiquidationThreshold(params.liquidationThreshold);
+        configuration.setLiquidationBonus(params.liquidationBonus);
+        pool.__addReserve(params.asset, configuration);
     }
 
-    function _assertReserve(
-        address asset,
-        bool active,
-        bool frozen,
-        bool paused,
-        uint256 ltv,
-        uint256 liquidationThreshold,
-        uint256 liquidationBonus
-    ) internal {
-        DataTypes.ReserveConfigurationMap memory configuration = pool.getConfiguration(asset);
-        assertEq(configuration.getActive(),               active);
-        assertEq(configuration.getFrozen(),               frozen);
-        assertEq(configuration.getPaused(),               paused);
-        assertEq(configuration.getLtv(),                  ltv);
-        assertEq(configuration.getLiquidationThreshold(), liquidationThreshold);
-        assertEq(configuration.getLiquidationBonus(),     liquidationBonus);
+    function _assertReserve(ReserveConfigParams memory params) internal {
+        DataTypes.ReserveConfigurationMap memory configuration = pool.getConfiguration(params.asset);
+        assertEq(configuration.getActive(),               params.active);
+        assertEq(configuration.getFrozen(),               params.frozen);
+        assertEq(configuration.getPaused(),               params.paused);
+        assertEq(configuration.getLtv(),                  params.ltv);
+        assertEq(configuration.getLiquidationThreshold(), params.liquidationThreshold);
+        assertEq(configuration.getLiquidationBonus(),     params.liquidationBonus);
     }
     
 }
