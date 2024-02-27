@@ -105,7 +105,7 @@ interface IKillSwitchOracle {
     /**********************************************************************************************/
 
     /**
-     * @dev    Returns the total number of oracles currently set.
+     * @dev    Returns the total number of oracles being monitored.
      * @return _numOracles The total number of oracles.
      */
     function numOracles() external view returns (uint256 _numOracles);
@@ -118,14 +118,14 @@ interface IKillSwitchOracle {
     function oracleAt(uint256 index) external view returns (address oracle);
 
     /**
-     * @dev    Checks if a given address is an oracle.
+     * @dev    Checks if a given address is an oracle being monitored.
      * @param  oracle     The address to check.
-     * @return _hasOracle True if the address is an oracle, false otherwise.
+     * @return _hasOracle True if the address is an oracle being monitored.
      */
     function hasOracle(address oracle) external view returns (bool _hasOracle);
 
     /**
-     * @dev    Returns an array containing the addresses of all set oracles.
+     * @dev    Returns an array containing the addresses of all oracles being monitored.
      * @return _oracles An array of oracle addresses.
      */
     function oracles() external view returns (address[] memory _oracles);
