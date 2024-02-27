@@ -272,6 +272,7 @@ contract KillSwitchOracleIntegrationTest is Test {
         uint256 liquidationBonus
     ) internal {
         DataTypes.ReserveConfigurationMap memory configuration = pool.getConfiguration(asset);
+        
         assertEq(configuration.getActive(),               active);
         assertEq(configuration.getFrozen(),               frozen);
         assertEq(configuration.getPaused(),               paused);

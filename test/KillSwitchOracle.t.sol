@@ -344,17 +344,20 @@ contract KillSwitchOracleTest is Test {
 
     function _initReserve(ReserveConfigParams memory params) internal {
         DataTypes.ReserveConfigurationMap memory configuration = pool.getConfiguration(params.asset);
+
         configuration.setActive(params.active);
         configuration.setFrozen(params.frozen);
         configuration.setPaused(params.paused);
         configuration.setLtv(params.ltv);
         configuration.setLiquidationThreshold(params.liquidationThreshold);
         configuration.setLiquidationBonus(params.liquidationBonus);
+
         pool.__addReserve(params.asset, configuration);
     }
 
     function _assertReserve(ReserveConfigParams memory params) internal {
         DataTypes.ReserveConfigurationMap memory configuration = pool.getConfiguration(params.asset);
+        
         assertEq(configuration.getActive(),               params.active);
         assertEq(configuration.getFrozen(),               params.frozen);
         assertEq(configuration.getPaused(),               params.paused);
