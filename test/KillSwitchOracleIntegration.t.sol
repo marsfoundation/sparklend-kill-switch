@@ -20,10 +20,11 @@ contract KillSwitchOracleIntegrationTest is Test {
     event AssetLTV0(address indexed asset);
     event AssetFrozen(address indexed asset);
 
-    address constant POOL              = 0xC13e21B648A5Ee794902342038FF3aDAB66BE987;
-    address constant POOL_CONFIGURATOR = 0x542DBa469bdE58FAeE189ffB60C6b49CE60E0738;
-    address constant ACL_MANAGER       = 0xdA135Cd78A086025BcdC87B038a1C462032b510C;
-    address constant SPARK_PROXY       = 0x3300f198988e4C9C63F75dF86De36421f06af8c4;
+    address constant POOL_ADDRESSES_PROVIDER = 0x02C3eA4e34C0cBd694D2adFa2c690EECbC1793eE;
+    address constant POOL                    = 0xC13e21B648A5Ee794902342038FF3aDAB66BE987;
+    address constant POOL_CONFIGURATOR       = 0x542DBa469bdE58FAeE189ffB60C6b49CE60E0738;
+    address constant ACL_MANAGER             = 0xdA135Cd78A086025BcdC87B038a1C462032b510C;
+    address constant SPARK_PROXY             = 0x3300f198988e4C9C63F75dF86De36421f06af8c4;
 
     address constant WBTC_ORACLE  = 0xfdFD9C85aD200c506Cf9e21F1FD8dd01932FBB23;
     address constant STETH_ORACLE = 0x86392dC19c0b719886221c78AB11eb8Cf5c52812;
@@ -51,7 +52,7 @@ contract KillSwitchOracleIntegrationTest is Test {
     function setUp() public {
         vm.createSelectFork(getChain("mainnet").rpcUrl, 19255277);  // Feb 18, 2024
 
-        killSwitchOracle = new KillSwitchOracle(pool, poolConfigurator);
+        killSwitchOracle = new KillSwitchOracle(POOL_ADDRESSES_PROVIDER);
         killSwitchOracle.transferOwnership(SPARK_PROXY);
 
         vm.prank(SPARK_PROXY);

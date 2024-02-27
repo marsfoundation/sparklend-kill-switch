@@ -4,11 +4,12 @@ pragma solidity ^0.8.13;
 import { Ownable }       from "lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 import { EnumerableSet } from "lib/openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol";
 
-import { AggregatorInterface }  from "lib/aave-v3-core/contracts/dependencies/chainlink/AggregatorInterface.sol";
-import { IPool }                from "lib/aave-v3-core/contracts/interfaces/IPool.sol";
-import { IPoolConfigurator }    from "lib/aave-v3-core/contracts/interfaces/IPoolConfigurator.sol";
-import { ReserveConfiguration } from "lib/aave-v3-core/contracts/protocol/libraries/configuration/ReserveConfiguration.sol";
-import { DataTypes }            from "lib/aave-v3-core/contracts/protocol/libraries/types/DataTypes.sol";
+import { AggregatorInterface }    from "lib/aave-v3-core/contracts/dependencies/chainlink/AggregatorInterface.sol";
+import { IPool }                  from "lib/aave-v3-core/contracts/interfaces/IPool.sol";
+import { IPoolAddressesProvider } from "lib/aave-v3-core/contracts/interfaces/IPoolAddressesProvider.sol";
+import { IPoolConfigurator }      from "lib/aave-v3-core/contracts/interfaces/IPoolConfigurator.sol";
+import { ReserveConfiguration }   from "lib/aave-v3-core/contracts/protocol/libraries/configuration/ReserveConfiguration.sol";
+import { DataTypes }              from "lib/aave-v3-core/contracts/protocol/libraries/types/DataTypes.sol";
 
 import { IKillSwitchOracle } from "src/interfaces/IKillSwitchOracle.sol";
 
@@ -30,12 +31,9 @@ contract KillSwitchOracle is IKillSwitchOracle, Ownable {
 
     mapping(address => uint256) public override oracleThresholds;
 
-    constructor(
-        IPool             _pool,
-        IPoolConfigurator _poolConfigurator
-    ) Ownable(msg.sender) {
-        pool             = _pool;
-        poolConfigurator = _poolConfigurator;
+    constructor(address poolAddressesProvider) Ownable(msg.sender) {
+        pool             = IPool(IPoolAddressesProvider(poolAddressesProvider).getPool());
+        poolConfigurator = IPoolConfigurator(IPoolAddressesProvider(poolAddressesProvider).getPoolConfigurator());
     }
 
     /******************************************************************************************************************/
@@ -85,7 +83,7 @@ contract KillSwitchOracle is IKillSwitchOracle, Ownable {
     function hasOracle(address oracle) external override view returns (bool) {
         return _oracles.contains(oracle);
     }
-    
+
     function oracles() external override view returns (address[] memory) {
         return _oracles.values();
     }

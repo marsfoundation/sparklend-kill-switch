@@ -8,9 +8,10 @@ import { IPoolConfigurator }    from "lib/aave-v3-core/contracts/interfaces/IPoo
 import { ReserveConfiguration } from "lib/aave-v3-core/contracts/protocol/libraries/configuration/ReserveConfiguration.sol";
 import { DataTypes }            from "lib/aave-v3-core/contracts/protocol/libraries/types/DataTypes.sol";
 
-import { MockOracle }             from "test/mocks/MockOracle.sol";
-import { MockPool }             from "test/mocks/MockPool.sol";
-import { MockPoolConfigurator } from "test/mocks/MockPoolConfigurator.sol";
+import { MockOracle }                from "test/mocks/MockOracle.sol";
+import { MockPool }                  from "test/mocks/MockPool.sol";
+import { MockPoolAddressesProvider } from "test/mocks/MockPoolAddressesProvider.sol";
+import { MockPoolConfigurator }      from "test/mocks/MockPoolConfigurator.sol";
 
 import { KillSwitchOracle } from "src/KillSwitchOracle.sol";
 
@@ -25,10 +26,11 @@ contract KillSwitchOracleTest is Test {
     event AssetFrozen(address indexed asset);
     event Reset();
 
-    MockPool             pool;
-    MockPoolConfigurator poolConfigurator;
-    MockOracle           oracle;
-    MockOracle           anotherOracle;
+    MockPoolAddressesProvider poolAddressesProvider;
+    MockPool                  pool;
+    MockPoolConfigurator      poolConfigurator;
+    MockOracle                oracle;
+    MockOracle                anotherOracle;
 
     KillSwitchOracle killSwitchOracle;
 
@@ -42,15 +44,13 @@ contract KillSwitchOracleTest is Test {
     address asset5 = makeAddr("asset5");
 
     function setUp() public {
-        pool             = new MockPool();
-        poolConfigurator = new MockPoolConfigurator(IPool(address(pool)));
-        oracle           = new MockOracle(1e8);
-        anotherOracle    = new MockOracle(1e8);
+        pool                  = new MockPool();
+        poolConfigurator      = new MockPoolConfigurator(IPool(address(pool)));
+        poolAddressesProvider = new MockPoolAddressesProvider(address(pool), address(poolConfigurator));
+        oracle                = new MockOracle(1e8);
+        anotherOracle         = new MockOracle(1e8);
 
-        killSwitchOracle = new KillSwitchOracle(
-            IPool(address(pool)),
-            IPoolConfigurator(address(poolConfigurator))
-        );
+        killSwitchOracle = new KillSwitchOracle(address(poolAddressesProvider));
         killSwitchOracle.transferOwnership(owner);
     }
 
