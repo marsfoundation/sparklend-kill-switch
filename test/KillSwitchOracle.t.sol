@@ -14,20 +14,7 @@ import { MockPoolConfigurator }      from "test/mocks/MockPoolConfigurator.sol";
 
 import { KillSwitchOracle } from "src/KillSwitchOracle.sol";
 
-contract KillSwitchOracleTest is Test {
-
-    struct ReserveConfigParams {
-        address asset;
-        bool    active;
-        bool    frozen;
-        bool    paused;
-        bool    borrowingEnabled;
-        uint256 ltv;
-        uint256 liquidationThreshold;
-        uint256 liquidationBonus;
-    }
-
-    using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
+contract KillSwitchOracleTestBase is Test {
 
     event SetOracle(address indexed oracle, uint256 threshold);
     event DisableOracle(address indexed oracle);
@@ -67,12 +54,20 @@ contract KillSwitchOracleTest is Test {
         killSwitchOracle.transferOwnership(owner);
     }
 
+}
+
+contract KillSwitchOracleConstructorTests is KillSwitchOracleTestBase {
+
     function test_constructor() public {
         assertEq(address(killSwitchOracle.pool()),             address(pool));
         assertEq(address(killSwitchOracle.poolConfigurator()), address(poolConfigurator));
         assertEq(killSwitchOracle.triggered(),                 false);
         assertEq(killSwitchOracle.numOracles(),                0);
     }
+
+}
+
+contract KillSwitchOracleOwnerTests is KillSwitchOracleTestBase {
 
     function test_owner() public {
         killSwitchOracle = new KillSwitchOracle(address(poolAddressesProvider));
@@ -86,6 +81,10 @@ contract KillSwitchOracleTest is Test {
         vm.prank(randomAddress);
         killSwitchOracle.transferOwnership(randomAddress);
     }
+
+}
+
+contract KillSwitchOracleConfigureOracleTests is KillSwitchOracleTestBase {
 
     function test_setOracle_onlyOwner() public {
         vm.expectRevert(abi.encodeWithSignature("OwnableUnauthorizedAccount(address)", randomAddress));
@@ -171,33 +170,6 @@ contract KillSwitchOracleTest is Test {
         assertEq(killSwitchOracle.oracleThresholds(address(oracle1)), 0);
     }
 
-    function test_reset_onlyOwner() public {
-        vm.expectRevert(abi.encodeWithSignature("OwnableUnauthorizedAccount(address)", randomAddress));
-        vm.prank(randomAddress);
-        killSwitchOracle.reset();
-    }
-
-    function test_reset_notTriggered() public {
-        vm.expectRevert("KillSwitchOracle/not-triggered");
-        vm.prank(owner);
-        killSwitchOracle.reset();
-    }
-
-    function test_reset() public {
-        vm.prank(owner);
-        killSwitchOracle.setOracle(address(oracle1), 1e8);
-        killSwitchOracle.trigger(address(oracle1));
-        
-        assertEq(killSwitchOracle.triggered(), true);
-        
-        vm.expectEmit(address(killSwitchOracle));
-        emit Reset();
-        vm.prank(owner);
-        killSwitchOracle.reset();
-
-        assertEq(killSwitchOracle.triggered(), false);
-    }
-
     function test_oracles() public {
         address[] memory oracles = killSwitchOracle.oracles();
         assertEq(oracles.length,                               0);
@@ -248,6 +220,54 @@ contract KillSwitchOracleTest is Test {
         assertEq(killSwitchOracle.hasOracle(address(oracle2)), true);
         assertEq(killSwitchOracle.hasOracle(address(oracle3)), true);
     }
+
+}
+
+contract KillSwitchOracleResetTests is KillSwitchOracleTestBase {
+
+    function test_reset_onlyOwner() public {
+        vm.expectRevert(abi.encodeWithSignature("OwnableUnauthorizedAccount(address)", randomAddress));
+        vm.prank(randomAddress);
+        killSwitchOracle.reset();
+    }
+
+    function test_reset_notTriggered() public {
+        vm.expectRevert("KillSwitchOracle/not-triggered");
+        vm.prank(owner);
+        killSwitchOracle.reset();
+    }
+
+    function test_reset() public {
+        vm.prank(owner);
+        killSwitchOracle.setOracle(address(oracle1), 1e8);
+        killSwitchOracle.trigger(address(oracle1));
+        
+        assertEq(killSwitchOracle.triggered(), true);
+        
+        vm.expectEmit(address(killSwitchOracle));
+        emit Reset();
+        vm.prank(owner);
+        killSwitchOracle.reset();
+
+        assertEq(killSwitchOracle.triggered(), false);
+    }
+
+}
+
+contract KillSwitchOracleTriggerTests is KillSwitchOracleTestBase {
+
+    struct ReserveConfigParams {
+        address asset;
+        bool    active;
+        bool    frozen;
+        bool    paused;
+        bool    borrowingEnabled;
+        uint256 ltv;
+        uint256 liquidationThreshold;
+        uint256 liquidationBonus;
+    }
+
+    using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
 
     function test_trigger_alreadyTriggered() public {
         vm.prank(owner);
