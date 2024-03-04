@@ -40,6 +40,7 @@ contract KillSwitchOracleTest is Test {
     MockPoolConfigurator      poolConfigurator;
     MockOracle                oracle1;
     MockOracle                oracle2;
+    MockOracle                oracle3;
 
     KillSwitchOracle killSwitchOracle;
 
@@ -58,6 +59,7 @@ contract KillSwitchOracleTest is Test {
         poolAddressesProvider = new MockPoolAddressesProvider(address(pool), address(poolConfigurator));
         oracle1               = new MockOracle(1e8);
         oracle2               = new MockOracle(1e8);
+        oracle3               = new MockOracle(1e8);
 
         killSwitchOracle = new KillSwitchOracle(address(poolAddressesProvider));
         killSwitchOracle.transferOwnership(owner);
@@ -200,7 +202,7 @@ contract KillSwitchOracleTest is Test {
         assertEq(killSwitchOracle.numOracles(),                0);
         assertEq(killSwitchOracle.hasOracle(address(oracle1)), false);
         assertEq(killSwitchOracle.hasOracle(address(oracle2)), false);
-        assertEq(killSwitchOracle.hasOracle(randomAddress),    false);
+        assertEq(killSwitchOracle.hasOracle(address(oracle3)), false);
 
         vm.startPrank(owner);
         killSwitchOracle.setOracle(address(oracle1), 1e8);
@@ -216,7 +218,7 @@ contract KillSwitchOracleTest is Test {
         assertEq(killSwitchOracle.oracleAt(1),                 address(oracle2));
         assertEq(killSwitchOracle.hasOracle(address(oracle1)), true);
         assertEq(killSwitchOracle.hasOracle(address(oracle2)), true);
-        assertEq(killSwitchOracle.hasOracle(randomAddress),    false);
+        assertEq(killSwitchOracle.hasOracle(address(oracle3)), false);
 
         vm.prank(owner);
         killSwitchOracle.disableOracle(address(oracle1));
@@ -228,7 +230,21 @@ contract KillSwitchOracleTest is Test {
         assertEq(killSwitchOracle.oracleAt(0),                 address(oracle2));
         assertEq(killSwitchOracle.hasOracle(address(oracle1)), false);
         assertEq(killSwitchOracle.hasOracle(address(oracle2)), true);
-        assertEq(killSwitchOracle.hasOracle(randomAddress),    false);
+        assertEq(killSwitchOracle.hasOracle(address(oracle3)), false);
+
+        vm.prank(owner);
+        killSwitchOracle.setOracle(address(oracle3), 1e8);
+
+        oracles = killSwitchOracle.oracles();
+        assertEq(oracles.length,                               2);
+        assertEq(oracles[0],                                   address(oracle2));
+        assertEq(oracles[1],                                   address(oracle3));
+        assertEq(killSwitchOracle.numOracles(),                2);
+        assertEq(killSwitchOracle.oracleAt(0),                 address(oracle2));
+        assertEq(killSwitchOracle.oracleAt(1),                 address(oracle3));
+        assertEq(killSwitchOracle.hasOracle(address(oracle1)), false);
+        assertEq(killSwitchOracle.hasOracle(address(oracle2)), true);
+        assertEq(killSwitchOracle.hasOracle(address(oracle3)), true);
     }
 
     function test_trigger_alreadyTriggered() public {
