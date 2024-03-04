@@ -9,10 +9,10 @@ contract MockPool {
     using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
 
     address[] private reserves;
+    
     mapping(address => DataTypes.ReserveConfigurationMap) private configurations;
 
-    constructor() {
-    }
+    constructor() {}
 
     function getReservesList() external view returns (address[] memory) {
         return reserves;

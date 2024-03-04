@@ -244,11 +244,11 @@ contract KillSwitchOracleTest is Test {
         vm.prank(owner);
         killSwitchOracle.setOracle(address(oracle), 1e8);
 
-        oracle.setLatestAnswer(-1);
+        oracle.__setLatestAnswer(-1);
         vm.expectRevert("KillSwitchOracle/invalid-price");
         killSwitchOracle.trigger(address(oracle));
 
-        oracle.setLatestAnswer(0);
+        oracle.__setLatestAnswer(0);
         vm.expectRevert("KillSwitchOracle/invalid-price");
         killSwitchOracle.trigger(address(oracle));
     }
@@ -323,7 +323,7 @@ contract KillSwitchOracleTest is Test {
 
         vm.prank(owner);
         killSwitchOracle.setOracle(address(oracle), 0.99e8);
-        oracle.setLatestAnswer(0.98e8);
+        oracle.__setLatestAnswer(0.98e8);
 
         vm.expectEmit(address(killSwitchOracle));
         emit Trigger(address(oracle), 0.99e8, 0.98e8);
@@ -357,7 +357,7 @@ contract KillSwitchOracleTest is Test {
 
     function _assertReserve(ReserveConfigParams memory params) internal {
         DataTypes.ReserveConfigurationMap memory configuration = pool.getConfiguration(params.asset);
-        
+
         assertEq(configuration.getActive(),               params.active);
         assertEq(configuration.getFrozen(),               params.frozen);
         assertEq(configuration.getPaused(),               params.paused);

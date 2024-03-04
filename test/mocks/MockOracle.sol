@@ -9,7 +9,7 @@ contract MockOracle {
         latestAnswer = _latestAnswer;
     }
 
-    function setLatestAnswer(int256 _latestAnswer) external {
+    function __setLatestAnswer(int256 _latestAnswer) external {
         latestAnswer = _latestAnswer;
     }
 
