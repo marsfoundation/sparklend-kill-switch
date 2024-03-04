@@ -262,7 +262,7 @@ contract KillSwitchOracleTest is Test {
         killSwitchOracle.trigger(address(oracle1));
     }
 
-    function test_trigger_invalidPrice() public {
+    function test_trigger_invalidPriceBoundary() public {
         vm.prank(owner);
         killSwitchOracle.setOracle(address(oracle1), 1e8);
 
@@ -273,13 +273,19 @@ contract KillSwitchOracleTest is Test {
         oracle1.__setLatestAnswer(0);
         vm.expectRevert("KillSwitchOracle/invalid-price");
         killSwitchOracle.trigger(address(oracle1));
+
+        oracle1.__setLatestAnswer(1);
+        killSwitchOracle.trigger(address(oracle1));
     }
 
-    function test_trigger_priceAboveThreshold() public {
+    function test_trigger_priceAboveThresholdBoundary() public {
         vm.prank(owner);
-        killSwitchOracle.setOracle(address(oracle1), 0.99e8);
-
+        killSwitchOracle.setOracle(address(oracle1), 1e8 - 1);
         vm.expectRevert("KillSwitchOracle/price-above-threshold");
+        killSwitchOracle.trigger(address(oracle1));
+
+        vm.prank(owner);
+        killSwitchOracle.setOracle(address(oracle1), 1e8);
         killSwitchOracle.trigger(address(oracle1));
     }
 
