@@ -38,8 +38,8 @@ contract KillSwitchOracleTest is Test {
     MockPoolAddressesProvider poolAddressesProvider;
     MockPool                  pool;
     MockPoolConfigurator      poolConfigurator;
-    MockOracle                oracle;
-    MockOracle                anotherOracle;
+    MockOracle                oracle1;
+    MockOracle                oracle2;
 
     KillSwitchOracle killSwitchOracle;
 
@@ -56,8 +56,8 @@ contract KillSwitchOracleTest is Test {
         pool                  = new MockPool();
         poolConfigurator      = new MockPoolConfigurator(IPool(address(pool)));
         poolAddressesProvider = new MockPoolAddressesProvider(address(pool), address(poolConfigurator));
-        oracle                = new MockOracle(1e8);
-        anotherOracle         = new MockOracle(1e8);
+        oracle1               = new MockOracle(1e8);
+        oracle2               = new MockOracle(1e8);
 
         killSwitchOracle = new KillSwitchOracle(address(poolAddressesProvider));
         killSwitchOracle.transferOwnership(owner);
@@ -77,88 +77,94 @@ contract KillSwitchOracleTest is Test {
         assertEq(killSwitchOracle.owner(), owner);
     }
 
+    function test_transferOwnership_notOwner() public {
+        vm.expectRevert(abi.encodeWithSignature("OwnableUnauthorizedAccount(address)", randomAddress));
+        vm.prank(randomAddress);
+        killSwitchOracle.transferOwnership(randomAddress);
+    }
+
     function test_setOracle_onlyOwner() public {
         vm.expectRevert(abi.encodeWithSignature("OwnableUnauthorizedAccount(address)", randomAddress));
         vm.prank(randomAddress);
-        killSwitchOracle.setOracle(address(oracle), 0.99e8);
+        killSwitchOracle.setOracle(address(oracle1), 0.99e8);
     }
 
     function test_setOracle_thresholdZero() public {
         vm.expectRevert("KillSwitchOracle/invalid-threshold");
         vm.prank(owner);
-        killSwitchOracle.setOracle(address(oracle), 0);
+        killSwitchOracle.setOracle(address(oracle1), 0);
     }
 
     function test_setOracle_thresholdSame() public {
         vm.prank(owner);
-        killSwitchOracle.setOracle(address(oracle), 0.99e8);
+        killSwitchOracle.setOracle(address(oracle1), 0.99e8);
 
         vm.expectRevert("KillSwitchOracle/invalid-threshold");
         vm.prank(owner);
-        killSwitchOracle.setOracle(address(oracle), 0.99e8);
+        killSwitchOracle.setOracle(address(oracle1), 0.99e8);
     }
 
     function test_setOracle() public {
-        assertEq(killSwitchOracle.numOracles(),                      0);
-        assertEq(killSwitchOracle.oracleThresholds(address(oracle)), 0);
+        assertEq(killSwitchOracle.numOracles(),                       0);
+        assertEq(killSwitchOracle.oracleThresholds(address(oracle1)), 0);
 
         vm.expectEmit(address(killSwitchOracle));
-        emit SetOracle(address(oracle), 0.99e8);
+        emit SetOracle(address(oracle1), 0.99e8);
         vm.prank(owner);
-        killSwitchOracle.setOracle(address(oracle), 0.99e8);
+        killSwitchOracle.setOracle(address(oracle1), 0.99e8);
 
-        assertEq(killSwitchOracle.numOracles(),                      1);
-        assertEq(killSwitchOracle.oracleAt(0),                       address(oracle));
-        assertEq(killSwitchOracle.oracleThresholds(address(oracle)), 0.99e8);
+        assertEq(killSwitchOracle.numOracles(),                       1);
+        assertEq(killSwitchOracle.oracleAt(0),                        address(oracle1));
+        assertEq(killSwitchOracle.oracleThresholds(address(oracle1)), 0.99e8);
     }
 
     function test_setOracle_twice() public {
-        assertEq(killSwitchOracle.numOracles(),                      0);
-        assertEq(killSwitchOracle.oracleThresholds(address(oracle)), 0);
+        assertEq(killSwitchOracle.numOracles(),                       0);
+        assertEq(killSwitchOracle.oracleThresholds(address(oracle1)), 0);
 
         vm.prank(owner);
-        killSwitchOracle.setOracle(address(oracle), 0.99e8);
+        killSwitchOracle.setOracle(address(oracle1), 0.99e8);
 
-        assertEq(killSwitchOracle.numOracles(),                      1);
-        assertEq(killSwitchOracle.oracleAt(0),                       address(oracle));
-        assertEq(killSwitchOracle.oracleThresholds(address(oracle)), 0.99e8);
+        assertEq(killSwitchOracle.numOracles(),                       1);
+        assertEq(killSwitchOracle.oracleAt(0),                        address(oracle1));
+        assertEq(killSwitchOracle.oracleThresholds(address(oracle1)), 0.99e8);
 
         // Should only update the threshold
         vm.prank(owner);
-        killSwitchOracle.setOracle(address(oracle), 0.98e8);
+        killSwitchOracle.setOracle(address(oracle1), 0.98e8);
 
-        assertEq(killSwitchOracle.numOracles(),                      1);
-        assertEq(killSwitchOracle.oracleAt(0),                       address(oracle));
-        assertEq(killSwitchOracle.oracleThresholds(address(oracle)), 0.98e8);
+        assertEq(killSwitchOracle.numOracles(),                       1);
+        assertEq(killSwitchOracle.oracleAt(0),                        address(oracle1));
+        assertEq(killSwitchOracle.oracleThresholds(address(oracle1)), 0.98e8);
     }
 
     function test_disableOracle_onlyOwner() public {
         vm.expectRevert(abi.encodeWithSignature("OwnableUnauthorizedAccount(address)", randomAddress));
         vm.prank(randomAddress);
-        killSwitchOracle.disableOracle(address(oracle));
+        killSwitchOracle.disableOracle(address(oracle1));
     }
 
     function test_disableOracle_notSet() public {
         vm.expectRevert("KillSwitchOracle/oracle-does-not-exist");
         vm.prank(owner);
-        killSwitchOracle.disableOracle(address(oracle));
+        killSwitchOracle.disableOracle(address(oracle1));
     }
 
     function test_disableOracle() public {
         vm.prank(owner);
-        killSwitchOracle.setOracle(address(oracle), 0.99e8);
+        killSwitchOracle.setOracle(address(oracle1), 0.99e8);
 
-        assertEq(killSwitchOracle.numOracles(),                      1);
-        assertEq(killSwitchOracle.oracleAt(0),                       address(oracle));
-        assertEq(killSwitchOracle.oracleThresholds(address(oracle)), 0.99e8);
+        assertEq(killSwitchOracle.numOracles(),                       1);
+        assertEq(killSwitchOracle.oracleAt(0),                        address(oracle1));
+        assertEq(killSwitchOracle.oracleThresholds(address(oracle1)), 0.99e8);
 
         vm.expectEmit(address(killSwitchOracle));
-        emit DisableOracle(address(oracle));
+        emit DisableOracle(address(oracle1));
         vm.prank(owner);
-        killSwitchOracle.disableOracle(address(oracle));
+        killSwitchOracle.disableOracle(address(oracle1));
 
-        assertEq(killSwitchOracle.numOracles(),                      0);
-        assertEq(killSwitchOracle.oracleThresholds(address(oracle)), 0);
+        assertEq(killSwitchOracle.numOracles(),                       0);
+        assertEq(killSwitchOracle.oracleThresholds(address(oracle1)), 0);
     }
 
     function test_reset_onlyOwner() public {
@@ -175,8 +181,8 @@ contract KillSwitchOracleTest is Test {
 
     function test_reset() public {
         vm.prank(owner);
-        killSwitchOracle.setOracle(address(oracle), 1e8);
-        killSwitchOracle.trigger(address(oracle));
+        killSwitchOracle.setOracle(address(oracle1), 1e8);
+        killSwitchOracle.trigger(address(oracle1));
         
         assertEq(killSwitchOracle.triggered(), true);
         
@@ -190,75 +196,75 @@ contract KillSwitchOracleTest is Test {
 
     function test_oracles() public {
         address[] memory oracles = killSwitchOracle.oracles();
-        assertEq(oracles.length,                                     0);
-        assertEq(killSwitchOracle.numOracles(),                      0);
-        assertEq(killSwitchOracle.hasOracle(address(oracle)),        false);
-        assertEq(killSwitchOracle.hasOracle(address(anotherOracle)), false);
-        assertEq(killSwitchOracle.hasOracle(randomAddress),          false);
+        assertEq(oracles.length,                               0);
+        assertEq(killSwitchOracle.numOracles(),                0);
+        assertEq(killSwitchOracle.hasOracle(address(oracle1)), false);
+        assertEq(killSwitchOracle.hasOracle(address(oracle2)), false);
+        assertEq(killSwitchOracle.hasOracle(randomAddress),    false);
 
         vm.startPrank(owner);
-        killSwitchOracle.setOracle(address(oracle),        1e8);
-        killSwitchOracle.setOracle(address(anotherOracle), 1e8);
+        killSwitchOracle.setOracle(address(oracle1), 1e8);
+        killSwitchOracle.setOracle(address(oracle2), 1e8);
         vm.stopPrank();
 
         oracles = killSwitchOracle.oracles();
-        assertEq(oracles.length,                                     2);
-        assertEq(oracles[0],                                         address(oracle));
-        assertEq(oracles[1],                                         address(anotherOracle));
-        assertEq(killSwitchOracle.numOracles(),                      2);
-        assertEq(killSwitchOracle.oracleAt(0),                       address(oracle));
-        assertEq(killSwitchOracle.oracleAt(1),                       address(anotherOracle));
-        assertEq(killSwitchOracle.hasOracle(address(oracle)),        true);
-        assertEq(killSwitchOracle.hasOracle(address(anotherOracle)), true);
-        assertEq(killSwitchOracle.hasOracle(randomAddress),          false);
+        assertEq(oracles.length,                               2);
+        assertEq(oracles[0],                                   address(oracle1));
+        assertEq(oracles[1],                                   address(oracle2));
+        assertEq(killSwitchOracle.numOracles(),                2);
+        assertEq(killSwitchOracle.oracleAt(0),                 address(oracle1));
+        assertEq(killSwitchOracle.oracleAt(1),                 address(oracle2));
+        assertEq(killSwitchOracle.hasOracle(address(oracle1)), true);
+        assertEq(killSwitchOracle.hasOracle(address(oracle2)), true);
+        assertEq(killSwitchOracle.hasOracle(randomAddress),    false);
 
         vm.prank(owner);
-        killSwitchOracle.disableOracle(address(oracle));
+        killSwitchOracle.disableOracle(address(oracle1));
 
         oracles = killSwitchOracle.oracles();
-        assertEq(oracles.length,                                     1);
-        assertEq(oracles[0],                                         address(anotherOracle));
-        assertEq(killSwitchOracle.numOracles(),                      1);
-        assertEq(killSwitchOracle.oracleAt(0),                       address(anotherOracle));
-        assertEq(killSwitchOracle.hasOracle(address(oracle)),        false);
-        assertEq(killSwitchOracle.hasOracle(address(anotherOracle)), true);
-        assertEq(killSwitchOracle.hasOracle(randomAddress),          false);
+        assertEq(oracles.length,                               1);
+        assertEq(oracles[0],                                   address(oracle2));
+        assertEq(killSwitchOracle.numOracles(),                1);
+        assertEq(killSwitchOracle.oracleAt(0),                 address(oracle2));
+        assertEq(killSwitchOracle.hasOracle(address(oracle1)), false);
+        assertEq(killSwitchOracle.hasOracle(address(oracle2)), true);
+        assertEq(killSwitchOracle.hasOracle(randomAddress),    false);
     }
 
     function test_trigger_alreadyTriggered() public {
         vm.prank(owner);
-        killSwitchOracle.setOracle(address(oracle), 1e8);
-        killSwitchOracle.trigger(address(oracle));
+        killSwitchOracle.setOracle(address(oracle1), 1e8);
+        killSwitchOracle.trigger(address(oracle1));
 
         vm.expectRevert("KillSwitchOracle/already-triggered");
-        killSwitchOracle.trigger(address(oracle));
+        killSwitchOracle.trigger(address(oracle1));
     }
 
     function test_trigger_doesNotExist() public {
         vm.prank(owner);
         vm.expectRevert("KillSwitchOracle/oracle-does-not-exist");
-        killSwitchOracle.trigger(address(oracle));
+        killSwitchOracle.trigger(address(oracle1));
     }
 
     function test_trigger_invalidPrice() public {
         vm.prank(owner);
-        killSwitchOracle.setOracle(address(oracle), 1e8);
+        killSwitchOracle.setOracle(address(oracle1), 1e8);
 
-        oracle.__setLatestAnswer(-1);
+        oracle1.__setLatestAnswer(-1);
         vm.expectRevert("KillSwitchOracle/invalid-price");
-        killSwitchOracle.trigger(address(oracle));
+        killSwitchOracle.trigger(address(oracle1));
 
-        oracle.__setLatestAnswer(0);
+        oracle1.__setLatestAnswer(0);
         vm.expectRevert("KillSwitchOracle/invalid-price");
-        killSwitchOracle.trigger(address(oracle));
+        killSwitchOracle.trigger(address(oracle1));
     }
 
     function test_trigger_priceAboveThreshold() public {
         vm.prank(owner);
-        killSwitchOracle.setOracle(address(oracle), 0.99e8);
+        killSwitchOracle.setOracle(address(oracle1), 0.99e8);
 
         vm.expectRevert("KillSwitchOracle/price-above-threshold");
-        killSwitchOracle.trigger(address(oracle));
+        killSwitchOracle.trigger(address(oracle1));
     }
 
     function test_trigger() public {
@@ -322,17 +328,17 @@ contract KillSwitchOracleTest is Test {
         assertEq(pool.getReservesList().length, 5);
 
         vm.prank(owner);
-        killSwitchOracle.setOracle(address(oracle), 0.99e8);
-        oracle.__setLatestAnswer(0.98e8);
+        killSwitchOracle.setOracle(address(oracle1), 0.99e8);
+        oracle1.__setLatestAnswer(0.98e8);
 
         vm.expectEmit(address(killSwitchOracle));
-        emit Trigger(address(oracle), 0.99e8, 0.98e8);
+        emit Trigger(address(oracle1), 0.99e8, 0.98e8);
         vm.expectEmit(address(killSwitchOracle));
         emit AssetLTV0(asset1);
         vm.expectEmit(address(killSwitchOracle));
         emit AssetFrozen(asset2);
         vm.prank(randomAddress);  // Permissionless call
-        killSwitchOracle.trigger(address(oracle));
+        killSwitchOracle.trigger(address(oracle1));
 
         params[0].ltv = 0;
         params[1].frozen = true;

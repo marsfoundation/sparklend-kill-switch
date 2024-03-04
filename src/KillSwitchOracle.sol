@@ -44,6 +44,7 @@ contract KillSwitchOracle is IKillSwitchOracle, Ownable {
         require(threshold != 0 && threshold != oracleThresholds[oracle], "KillSwitchOracle/invalid-threshold");
 
         oracleThresholds[oracle] = threshold;
+        
         // It's okay to add the same oracle multiple times
         // The EnumerableSet will make sure only 1 exists
         _oracles.add(oracle);  
