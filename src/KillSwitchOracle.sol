@@ -44,7 +44,7 @@ contract KillSwitchOracle is IKillSwitchOracle, Ownable {
         require(threshold != 0 && threshold != oracleThresholds[oracle], "KillSwitchOracle/invalid-threshold");
 
         oracleThresholds[oracle] = threshold;
-        
+
         // It's okay to add the same oracle multiple times
         // The EnumerableSet will make sure only 1 exists
         _oracles.add(oracle);  
@@ -118,8 +118,7 @@ contract KillSwitchOracle is IKillSwitchOracle, Ownable {
                 config.getPaused()
             ) continue;
 
-            uint256 ltv = config.getLtv();
-            if (ltv > 0) {
+            if (config.getLtv() > 0) {
                 // This asset is being used as collateral
                 // We only want to disable new borrows against this to allow users
                 // to top up their positions to prevent getting liquidated
@@ -131,7 +130,7 @@ contract KillSwitchOracle is IKillSwitchOracle, Ownable {
                 );
 
                 emit AssetLTV0(asset);
-            } else {
+            } else if (config.getBorrowingEnabled()) {
                 // This is a borrow-only asset
                 poolConfigurator.setReserveFreeze(asset, true);
 
