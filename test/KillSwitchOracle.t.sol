@@ -292,7 +292,7 @@ contract KillSwitchOracleTest is Test {
     }
 
     function test_trigger() public {
-        ReserveConfigParams[6] memory params = [
+        ReserveConfigParams[6] memory reserves = [
             // Collateral asset /w borrow enabled (Ex. ETH, wstETH)
             ReserveConfigParams({
                 asset:                asset1,
@@ -361,8 +361,8 @@ contract KillSwitchOracleTest is Test {
             })
         ];
 
-        for (uint256 i = 0; i < params.length; i++) {
-            _initReserve(params[i]);
+        for (uint256 i = 0; i < reserves.length; i++) {
+            _initReserve(reserves[i]);
         }
 
         assertEq(pool.getReservesList().length, 6);
@@ -382,12 +382,13 @@ contract KillSwitchOracleTest is Test {
         vm.prank(randomAddress);  // Permissionless call
         killSwitchOracle.trigger(address(oracle1));
 
-        params[0].ltv = 0;
-        params[1].ltv = 0;
-        params[2].frozen = true;
+        // Only update what has changed
+        reserves[0].ltv    = 0;
+        reserves[1].ltv    = 0;
+        reserves[2].frozen = true;
 
-        for (uint256 i = 0; i < params.length; i++) {
-            _assertReserve(params[i]);
+        for (uint256 i = 0; i < reserves.length; i++) {
+            _assertReserve(reserves[i]);
         }
     }
 
