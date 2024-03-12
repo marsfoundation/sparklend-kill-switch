@@ -9,6 +9,7 @@ import { IPool }                from "lib/aave-v3-core/contracts/interfaces/IPoo
 import { IPoolConfigurator }    from "lib/aave-v3-core/contracts/interfaces/IPoolConfigurator.sol";
 import { ReserveConfiguration } from "lib/aave-v3-core/contracts/protocol/libraries/configuration/ReserveConfiguration.sol";
 import { DataTypes }            from "lib/aave-v3-core/contracts/protocol/libraries/types/DataTypes.sol";
+import { IERC20 }               from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
 import { KillSwitchOracle } from "src/KillSwitchOracle.sol";
 
@@ -37,6 +38,9 @@ contract KillSwitchOracleIntegrationTest is Test {
     address constant GNO    = 0x6810e776880C02933D47DB1b9fc05908e5386b96;
     address constant RETH   = 0xae78736Cd615f374D3085123A210448E74Fc6393;
     address constant USDT   = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
+
+    address constant DAI_VAR_DEBT        = 0xf705d2B7e92B3F38e6ae7afaDAA2fEE110fE5914;
+    address constant DAI_BORROWER_WALLET = 0xf8dE75c7B95edB6f1E639751318f117663021Cf0;
 
     IPool             pool             = IPool(POOL);
     IPoolConfigurator poolConfigurator = IPoolConfigurator(POOL_CONFIGURATOR);
@@ -113,13 +117,22 @@ contract KillSwitchOracleIntegrationTest is Test {
         assertEq(_getBorrowEnabled(GNO),    false);
         assertEq(_getBorrowEnabled(RETH),   false);
         assertEq(_getBorrowEnabled(USDT),   false);
+
+        // Make sure users can still repay loans
+        uint256 userBalance = 40_187_695.578838876771725671e18;
+        deal(DAI, DAI_BORROWER_WALLET, 1e18);
+        assertEq(IERC20(DAI_VAR_DEBT).balanceOf(DAI_BORROWER_WALLET), userBalance);
+        
+        vm.startPrank(DAI_BORROWER_WALLET);
+        IERC20(DAI).approve(address(pool), 1e18);
+        pool.repay(DAI, 1e18, 2, DAI_BORROWER_WALLET);
+        vm.stopPrank();
+
+        assertEq(IERC20(DAI_VAR_DEBT).balanceOf(DAI_BORROWER_WALLET), userBalance - 1e18);
     }
 
     function _getBorrowEnabled(address asset) internal view returns (bool) {
         return pool.getConfiguration(asset).getBorrowingEnabled();
     }
-
-    // TODO add some more specific checks to make sure existing users can top up collateral, repay loans and withdraw collateral.
-    // Also demonstate that users can't be liquidate or anything weird.
 
 }
