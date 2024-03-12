@@ -15,22 +15,9 @@ contract MockPoolConfigurator {
         pool = _pool;
     }
 
-    function configureReserveAsCollateral(
-        address asset,
-        uint256 ltv,
-        uint256 liquidationThreshold,
-        uint256 liquidationBonus
-    ) external {
+    function setReserveBorrowing(address asset, bool borrowEnabled) external {
         DataTypes.ReserveConfigurationMap memory configuration = pool.getConfiguration(asset);
-        configuration.setLtv(ltv);
-        configuration.setLiquidationThreshold(liquidationThreshold);
-        configuration.setLiquidationBonus(liquidationBonus);
-        pool.setConfiguration(asset, configuration);
-    }
-
-    function setReserveFreeze(address asset, bool freeze) external {
-        DataTypes.ReserveConfigurationMap memory configuration = pool.getConfiguration(asset);
-        configuration.setFrozen(freeze);
+        configuration.setBorrowingEnabled(borrowEnabled);
         pool.setConfiguration(asset, configuration);
     }
 

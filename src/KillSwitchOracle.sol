@@ -118,23 +118,10 @@ contract KillSwitchOracle is IKillSwitchOracle, Ownable {
                 config.getPaused()
             ) continue;
 
-            if (config.getLtv() > 0) {
-                // This asset is being used as collateral
-                // We only want to disable new borrows against this to allow users
-                // to top up their positions to prevent getting liquidated
-                poolConfigurator.configureReserveAsCollateral(
-                    asset,
-                    0,
-                    config.getLiquidationThreshold(),
-                    config.getLiquidationBonus()
-                );
+            if (config.getBorrowingEnabled()) {
+                poolConfigurator.setReserveBorrowing(asset, false);
 
-                emit AssetLTV0(asset);
-            } else if (config.getBorrowingEnabled()) {
-                // This is a borrow-only asset
-                poolConfigurator.setReserveFreeze(asset, true);
-
-                emit AssetFrozen(asset);
+                emit BorrowDisabled(asset);
             }
         }
     }

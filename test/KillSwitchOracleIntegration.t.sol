@@ -17,8 +17,7 @@ contract KillSwitchOracleIntegrationTest is Test {
     using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
 
     event Trigger(address indexed oracle, uint256 threshold, uint256 price);
-    event AssetLTV0(address indexed asset);
-    event AssetFrozen(address indexed asset);
+    event BorrowDisabled(address indexed asset);
 
     address constant POOL_ADDRESSES_PROVIDER = 0x02C3eA4e34C0cBd694D2adFa2c690EECbC1793eE;
     address constant POOL                    = 0xC13e21B648A5Ee794902342038FF3aDAB66BE987;
@@ -76,209 +75,48 @@ contract KillSwitchOracleIntegrationTest is Test {
         vm.prank(randomUser);
         killSwitchOracle.trigger(WBTC_ORACLE);
 
-        _assertReserve({
-            asset:                DAI,
-            active:               true,
-            frozen:               false,
-            paused:               false,
-            ltv:                  0,
-            liquidationThreshold: 1,
-            liquidationBonus:     104_50
-        });
-        _assertReserve({
-            asset:                SDAI,
-            active:               true,
-            frozen:               false,
-            paused:               false,
-            ltv:                  74_00,
-            liquidationThreshold: 76_00,
-            liquidationBonus:     104_50
-        });
-        _assertReserve({
-            asset:                USDC,
-            active:               true,
-            frozen:               false,
-            paused:               false,
-            ltv:                  0,
-            liquidationThreshold: 0,
-            liquidationBonus:     0
-        });
-        _assertReserve({
-            asset:                WETH,
-            active:               true,
-            frozen:               false,
-            paused:               false,
-            ltv:                  80_00,
-            liquidationThreshold: 82_50,
-            liquidationBonus:     105_00
-        });
-        _assertReserve({
-            asset:                WSTETH,
-            active:               true,
-            frozen:               false,
-            paused:               false,
-            ltv:                  68_50,
-            liquidationThreshold: 79_50,
-            liquidationBonus:     107_00
-        });
-        _assertReserve({
-            asset:                WBTC,
-            active:               true,
-            frozen:               false,
-            paused:               false,
-            ltv:                  70_00,
-            liquidationThreshold: 75_00,
-            liquidationBonus:     107_00
-        });
-        _assertReserve({
-            asset:                GNO,
-            active:               true,
-            frozen:               true,
-            paused:               false,
-            ltv:                  0,
-            liquidationThreshold: 25_00,
-            liquidationBonus:     110_00
-        });
-        _assertReserve({
-            asset:                RETH,
-            active:               true,
-            frozen:               false,
-            paused:               false,
-            ltv:                  68_50,
-            liquidationThreshold: 79_50,
-            liquidationBonus:     107_00
-        });
-        _assertReserve({
-            asset:                USDT,
-            active:               true,
-            frozen:               false,
-            paused:               false,
-            ltv:                  0,
-            liquidationThreshold: 0,
-            liquidationBonus:     0
-        });
+        assertEq(_getBorrowEnabled(DAI),    true);
+        assertEq(_getBorrowEnabled(SDAI),   false);
+        assertEq(_getBorrowEnabled(USDC),   true);
+        assertEq(_getBorrowEnabled(WETH),   true);
+        assertEq(_getBorrowEnabled(WSTETH), true);
+        assertEq(_getBorrowEnabled(WBTC),   true);
+        assertEq(_getBorrowEnabled(GNO),    false);
+        assertEq(_getBorrowEnabled(RETH),   true);
+        assertEq(_getBorrowEnabled(USDT),   true);
 
         vm.expectEmit(address(killSwitchOracle));
         emit Trigger(address(STETH_ORACLE), 0.9999e18, 0.999599998787617000e18);
         vm.expectEmit(address(killSwitchOracle));
-        emit AssetFrozen(DAI);
+        emit BorrowDisabled(DAI);
         vm.expectEmit(address(killSwitchOracle));
-        emit AssetLTV0(SDAI);
+        emit BorrowDisabled(USDC);
         vm.expectEmit(address(killSwitchOracle));
-        emit AssetFrozen(USDC);
+        emit BorrowDisabled(WETH);
         vm.expectEmit(address(killSwitchOracle));
-        emit AssetLTV0(WETH);
+        emit BorrowDisabled(WSTETH);
         vm.expectEmit(address(killSwitchOracle));
-        emit AssetLTV0(WSTETH);
+        emit BorrowDisabled(WBTC);
         vm.expectEmit(address(killSwitchOracle));
-        emit AssetLTV0(WBTC);
+        emit BorrowDisabled(RETH);
         vm.expectEmit(address(killSwitchOracle));
-        emit AssetLTV0(RETH);
-        vm.expectEmit(address(killSwitchOracle));
-        emit AssetFrozen(USDT);
+        emit BorrowDisabled(USDT);
         vm.prank(randomUser);
         killSwitchOracle.trigger(STETH_ORACLE);
 
-        _assertReserve({
-            asset:                DAI,
-            active:               true,
-            frozen:               true,
-            paused:               false,
-            ltv:                  0,
-            liquidationThreshold: 1,
-            liquidationBonus:     104_50
-        });
-        _assertReserve({
-            asset:                SDAI,
-            active:               true,
-            frozen:               false,
-            paused:               false,
-            ltv:                  0,
-            liquidationThreshold: 76_00,
-            liquidationBonus:     104_50
-        });
-        _assertReserve({
-            asset:                USDC,
-            active:               true,
-            frozen:               true,
-            paused:               false,
-            ltv:                  0,
-            liquidationThreshold: 0,
-            liquidationBonus:     0
-        });
-        _assertReserve({
-            asset:                WETH,
-            active:               true,
-            frozen:               false,
-            paused:               false,
-            ltv:                  0,
-            liquidationThreshold: 82_50,
-            liquidationBonus:     105_00
-        });
-        _assertReserve({
-            asset:                WSTETH,
-            active:               true,
-            frozen:               false,
-            paused:               false,
-            ltv:                  0,
-            liquidationThreshold: 79_50,
-            liquidationBonus:     107_00
-        });
-        _assertReserve({
-            asset:                WBTC,
-            active:               true,
-            frozen:               false,
-            paused:               false,
-            ltv:                  0,
-            liquidationThreshold: 75_00,
-            liquidationBonus:     107_00
-        });
-        _assertReserve({
-            asset:                GNO,
-            active:               true,
-            frozen:               true,
-            paused:               false,
-            ltv:                  0,
-            liquidationThreshold: 25_00,
-            liquidationBonus:     110_00
-        });
-        _assertReserve({
-            asset:                RETH,
-            active:               true,
-            frozen:               false,
-            paused:               false,
-            ltv:                  0,
-            liquidationThreshold: 79_50,
-            liquidationBonus:     107_00
-        });
-        _assertReserve({
-            asset:                USDT,
-            active:               true,
-            frozen:               true,
-            paused:               false,
-            ltv:                  0,
-            liquidationThreshold: 0,
-            liquidationBonus:     0
-        });
+        assertEq(_getBorrowEnabled(DAI),    false);
+        assertEq(_getBorrowEnabled(SDAI),   false);
+        assertEq(_getBorrowEnabled(USDC),   false);
+        assertEq(_getBorrowEnabled(WETH),   false);
+        assertEq(_getBorrowEnabled(WSTETH), false);
+        assertEq(_getBorrowEnabled(WBTC),   false);
+        assertEq(_getBorrowEnabled(GNO),    false);
+        assertEq(_getBorrowEnabled(RETH),   false);
+        assertEq(_getBorrowEnabled(USDT),   false);
     }
 
-    function _assertReserve(
-        address asset,
-        bool active,
-        bool frozen,
-        bool paused,
-        uint256 ltv,
-        uint256 liquidationThreshold,
-        uint256 liquidationBonus
-    ) internal {
-        DataTypes.ReserveConfigurationMap memory configuration = pool.getConfiguration(asset);
-        
-        assertEq(configuration.getActive(),               active);
-        assertEq(configuration.getFrozen(),               frozen);
-        assertEq(configuration.getPaused(),               paused);
-        assertEq(configuration.getLtv(),                  ltv);
-        assertEq(configuration.getLiquidationThreshold(), liquidationThreshold);
-        assertEq(configuration.getLiquidationBonus(),     liquidationBonus);
+    function _getBorrowEnabled(address asset) internal view returns (bool) {
+        return pool.getConfiguration(asset).getBorrowingEnabled();
     }
 
     // TODO add some more specific checks to make sure existing users can top up collateral, repay loans and withdraw collateral.
