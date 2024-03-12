@@ -132,9 +132,8 @@ interface IKillSwitchOracle {
      * @notice Permissionless function to trigger the kill switch.
      * @dev    If the kill switch has not been triggered, the oracle threshold has been defined,
      *         and the oracle is below the threshold, the kill switch is triggered. This will
-     *         set LTV to 0 on any collateral asset preventing new loans and freeze any freeze
-     *         any other asset which can be borrowed. This function can only be called once
-     *         and will require a call to `reset()` by the owner to be called again.
+     *         disable borrowing on all assets. This function can only be called once and will
+     *         require a call to `reset()` by the owner to be called again.
      * @param  oracle The address of the oracle which is below the threshold.
      */
     function trigger(address oracle) external;
