@@ -144,6 +144,10 @@ contract KillSwitchOracleIntegrationTest is Test {
         pool.borrow(RETH, 1, 2, 0, DAI_BORROWER_WALLET);
         vm.expectRevert(bytes('30'));
         pool.borrow(USDT, 1, 2, 0, DAI_BORROWER_WALLET);
+        vm.expectRevert(bytes('28'));  // RESERVE_FROZEN
+        pool.borrow(GNO, 1, 2, 0, DAI_BORROWER_WALLET);
+        vm.expectRevert(bytes('30'));
+        pool.borrow(SDAI, 1, 2, 0, DAI_BORROWER_WALLET);
 
         vm.stopPrank();
 
