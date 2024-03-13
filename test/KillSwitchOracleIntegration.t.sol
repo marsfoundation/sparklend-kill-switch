@@ -118,14 +118,33 @@ contract KillSwitchOracleIntegrationTest is Test {
         assertEq(_getBorrowEnabled(RETH),   false);
         assertEq(_getBorrowEnabled(USDT),   false);
 
-        // Make sure users can still repay loans
+        // Test the functionality of the pool
         uint256 userBalance = 40_187_695.578838876771725671e18;
         deal(DAI, DAI_BORROWER_WALLET, 1e18);
         assertEq(IERC20(DAI_VAR_DEBT).balanceOf(DAI_BORROWER_WALLET), userBalance);
         
         vm.startPrank(DAI_BORROWER_WALLET);
+
+        // Make sure we can repay
         IERC20(DAI).approve(address(pool), 1e18);
         pool.repay(DAI, 1e18, 2, DAI_BORROWER_WALLET);
+
+        // Borrow should revert on all assets
+        vm.expectRevert(bytes('30'));  // BORROWING_NOT_ENABLED
+        pool.borrow(DAI, 1, 2, 0, DAI_BORROWER_WALLET);
+        vm.expectRevert(bytes('30'));
+        pool.borrow(USDC, 1, 2, 0, DAI_BORROWER_WALLET);
+        vm.expectRevert(bytes('30'));
+        pool.borrow(WETH, 1, 2, 0, DAI_BORROWER_WALLET);
+        vm.expectRevert(bytes('30'));
+        pool.borrow(WSTETH, 1, 2, 0, DAI_BORROWER_WALLET);
+        vm.expectRevert(bytes('30'));
+        pool.borrow(WBTC, 1, 2, 0, DAI_BORROWER_WALLET);
+        vm.expectRevert(bytes('30'));
+        pool.borrow(RETH, 1, 2, 0, DAI_BORROWER_WALLET);
+        vm.expectRevert(bytes('30'));
+        pool.borrow(USDT, 1, 2, 0, DAI_BORROWER_WALLET);
+
         vm.stopPrank();
 
         assertEq(IERC20(DAI_VAR_DEBT).balanceOf(DAI_BORROWER_WALLET), userBalance - 1e18);
