@@ -19,8 +19,7 @@ contract KillSwitchOracleTestBase is Test {
     event SetOracle(address indexed oracle, uint256 threshold);
     event DisableOracle(address indexed oracle);
     event Trigger(address indexed oracle, uint256 threshold, uint256 price);
-    event AssetLTV0(address indexed asset);
-    event AssetFrozen(address indexed asset);
+    event BorrowDisabled(address indexed asset);
     event Reset();
 
     MockPoolAddressesProvider poolAddressesProvider;
@@ -40,7 +39,6 @@ contract KillSwitchOracleTestBase is Test {
     address asset3 = makeAddr("asset3");
     address asset4 = makeAddr("asset4");
     address asset5 = makeAddr("asset5");
-    address asset6 = makeAddr("asset6");
 
     function setUp() public {
         pool                  = new MockPool();
@@ -262,9 +260,6 @@ contract KillSwitchOracleTriggerTests is KillSwitchOracleTestBase {
         bool    frozen;
         bool    paused;
         bool    borrowingEnabled;
-        uint256 ltv;
-        uint256 liquidationThreshold;
-        uint256 liquidationBonus;
     }
 
     using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
@@ -312,72 +307,46 @@ contract KillSwitchOracleTriggerTests is KillSwitchOracleTestBase {
     }
 
     function test_trigger() public {
-        ReserveConfigParams[6] memory reserves = [
-            // Collateral asset /w borrow enabled (Ex. ETH, wstETH)
+        ReserveConfigParams[5] memory reserves = [
+            // Asset with borrow enabled (Ex. ETH, wstETH, DAI)
             ReserveConfigParams({
                 asset:                asset1,
                 active:               true,
                 frozen:               false,
                 paused:               false,
-                borrowingEnabled:     true,
-                ltv:                  80_00,
-                liquidationThreshold: 83_00,
-                liquidationBonus:     105_00
+                borrowingEnabled:     true
             }),
-            // Collateral asset /w no borrow (Ex. sDAI)
+            // Collateral-only asset (Ex. sDAI)
             ReserveConfigParams({
                 asset:                asset2,
                 active:               true,
                 frozen:               false,
                 paused:               false,
-                borrowingEnabled:     false,
-                ltv:                  80_00,
-                liquidationThreshold: 83_00,
-                liquidationBonus:     105_00
+                borrowingEnabled:     false
             }),
-            // Borrow-only asset (Ex. DAI, USDC)
+            // Frozen asset (Ex. GNO)
             ReserveConfigParams({
                 asset:                asset3,
                 active:               true,
-                frozen:               false,
-                paused:               false,
-                borrowingEnabled:     true,
-                ltv:                  0,
-                liquidationThreshold: 0,
-                liquidationBonus:     0
-            }),
-            // Frozen/LTV0 asset (Ex. GNO)
-            ReserveConfigParams({
-                asset:                asset4,
-                active:               true,
                 frozen:               true,
                 paused:               false,
-                borrowingEnabled:     true,
-                ltv:                  0,
-                liquidationThreshold: 25_00,
-                liquidationBonus:     110_00
+                borrowingEnabled:     true
             }),
             // Paused asset
             ReserveConfigParams({
-                asset:                asset5,
+                asset:                asset4,
                 active:               true,
                 frozen:               false,
                 paused:               true,
-                borrowingEnabled:     true,
-                ltv:                  80_00,
-                liquidationThreshold: 83_00,
-                liquidationBonus:     105_00
+                borrowingEnabled:     true
             }),
             // Inactive asset
             ReserveConfigParams({
-                asset:                asset6,
+                asset:                asset5,
                 active:               false,
                 frozen:               false,
                 paused:               false,
-                borrowingEnabled:     false,
-                ltv:                  0,
-                liquidationThreshold: 0,
-                liquidationBonus:     0
+                borrowingEnabled:     false
             })
         ];
 
@@ -385,7 +354,7 @@ contract KillSwitchOracleTriggerTests is KillSwitchOracleTestBase {
             _initReserve(reserves[i]);
         }
 
-        assertEq(pool.getReservesList().length, 6);
+        assertEq(pool.getReservesList().length, 5);
 
         vm.prank(owner);
         killSwitchOracle.setOracle(address(oracle1), 0.99e8);
@@ -394,18 +363,12 @@ contract KillSwitchOracleTriggerTests is KillSwitchOracleTestBase {
         vm.expectEmit(address(killSwitchOracle));
         emit Trigger(address(oracle1), 0.99e8, 0.98e8);
         vm.expectEmit(address(killSwitchOracle));
-        emit AssetLTV0(asset1);
-        vm.expectEmit(address(killSwitchOracle));
-        emit AssetLTV0(asset2);
-        vm.expectEmit(address(killSwitchOracle));
-        emit AssetFrozen(asset3);
+        emit BorrowDisabled(asset1);
         vm.prank(randomAddress);  // Permissionless call
         killSwitchOracle.trigger(address(oracle1));
 
         // Only update what has changed
-        reserves[0].ltv    = 0;
-        reserves[1].ltv    = 0;
-        reserves[2].frozen = true;
+        reserves[0].borrowingEnabled = false;
 
         for (uint256 i = 0; i < reserves.length; i++) {
             _assertReserve(reserves[i]);
@@ -419,9 +382,6 @@ contract KillSwitchOracleTriggerTests is KillSwitchOracleTestBase {
         configuration.setFrozen(params.frozen);
         configuration.setPaused(params.paused);
         configuration.setBorrowingEnabled(params.borrowingEnabled);
-        configuration.setLtv(params.ltv);
-        configuration.setLiquidationThreshold(params.liquidationThreshold);
-        configuration.setLiquidationBonus(params.liquidationBonus);
 
         pool.__addReserve(params.asset, configuration);
     }
@@ -429,13 +389,10 @@ contract KillSwitchOracleTriggerTests is KillSwitchOracleTestBase {
     function _assertReserve(ReserveConfigParams memory params) internal {
         DataTypes.ReserveConfigurationMap memory configuration = pool.getConfiguration(params.asset);
 
-        assertEq(configuration.getActive(),               params.active);
-        assertEq(configuration.getFrozen(),               params.frozen);
-        assertEq(configuration.getPaused(),               params.paused);
-        assertEq(configuration.getBorrowingEnabled(),     params.borrowingEnabled);
-        assertEq(configuration.getLtv(),                  params.ltv);
-        assertEq(configuration.getLiquidationThreshold(), params.liquidationThreshold);
-        assertEq(configuration.getLiquidationBonus(),     params.liquidationBonus);
+        assertEq(configuration.getActive(),           params.active);
+        assertEq(configuration.getFrozen(),           params.frozen);
+        assertEq(configuration.getPaused(),           params.paused);
+        assertEq(configuration.getBorrowingEnabled(), params.borrowingEnabled);
     }
     
 }

@@ -32,16 +32,10 @@ interface IKillSwitchOracle {
     event Trigger(address indexed oracle, uint256 threshold, uint256 price);
 
     /**
-     *  @dev   Emitted when the LTV (Loan to Value) of an asset is set to 0.
-     *  @param asset The address of the asset whose LTV is set to 0.
+     *  @dev   Emitted when the borrow is disabled for an asset.
+     *  @param asset The address of the asset whose borrow has been disabled.
      */
-    event AssetLTV0(address indexed asset);
-
-    /**
-     *  @dev   Emitted when an asset is frozen.
-     *  @param asset The address of the asset that is frozen.
-     */
-    event AssetFrozen(address indexed asset);
+    event BorrowDisabled(address indexed asset);
 
     /**
      *  @dev Emitted when the contract is reset.
@@ -138,9 +132,8 @@ interface IKillSwitchOracle {
      * @notice Permissionless function to trigger the kill switch.
      * @dev    If the kill switch has not been triggered, the oracle threshold has been defined,
      *         and the oracle is below the threshold, the kill switch is triggered. This will
-     *         set LTV to 0 on any collateral asset preventing new loans and freeze any freeze
-     *         any other asset which can be borrowed. This function can only be called once
-     *         and will require a call to `reset()` by the owner to be called again.
+     *         disable borrowing on all assets. This function can only be called once and will
+     *         require a call to `reset()` by the owner to be called again.
      * @param  oracle The address of the oracle which is below the threshold.
      */
     function trigger(address oracle) external;
