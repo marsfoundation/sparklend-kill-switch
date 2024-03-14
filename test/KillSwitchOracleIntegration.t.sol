@@ -8,6 +8,7 @@ import { IACLManager }          from "lib/aave-v3-core/contracts/interfaces/IACL
 import { IPool }                from "lib/aave-v3-core/contracts/interfaces/IPool.sol";
 import { IPoolConfigurator }    from "lib/aave-v3-core/contracts/interfaces/IPoolConfigurator.sol";
 import { ReserveConfiguration } from "lib/aave-v3-core/contracts/protocol/libraries/configuration/ReserveConfiguration.sol";
+import { Errors }               from "lib/aave-v3-core/contracts/protocol/libraries/helpers/Errors.sol";
 import { DataTypes }            from "lib/aave-v3-core/contracts/protocol/libraries/types/DataTypes.sol";
 import { IERC20 }               from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
@@ -130,23 +131,23 @@ contract KillSwitchOracleIntegrationTest is Test {
         pool.repay(DAI, 1e18, 2, DAI_BORROWER_WALLET);
 
         // Borrow should revert on all assets
-        vm.expectRevert(bytes('30'));  // BORROWING_NOT_ENABLED
+        vm.expectRevert(bytes(Errors.BORROWING_NOT_ENABLED));
         pool.borrow(DAI, 1, 2, 0, DAI_BORROWER_WALLET);
-        vm.expectRevert(bytes('30'));
+        vm.expectRevert(bytes(Errors.BORROWING_NOT_ENABLED));
         pool.borrow(USDC, 1, 2, 0, DAI_BORROWER_WALLET);
-        vm.expectRevert(bytes('30'));
+        vm.expectRevert(bytes(Errors.BORROWING_NOT_ENABLED));
         pool.borrow(WETH, 1, 2, 0, DAI_BORROWER_WALLET);
-        vm.expectRevert(bytes('30'));
+        vm.expectRevert(bytes(Errors.BORROWING_NOT_ENABLED));
         pool.borrow(WSTETH, 1, 2, 0, DAI_BORROWER_WALLET);
-        vm.expectRevert(bytes('30'));
+        vm.expectRevert(bytes(Errors.BORROWING_NOT_ENABLED));
         pool.borrow(WBTC, 1, 2, 0, DAI_BORROWER_WALLET);
-        vm.expectRevert(bytes('30'));
+        vm.expectRevert(bytes(Errors.BORROWING_NOT_ENABLED));
         pool.borrow(RETH, 1, 2, 0, DAI_BORROWER_WALLET);
-        vm.expectRevert(bytes('30'));
+        vm.expectRevert(bytes(Errors.BORROWING_NOT_ENABLED));
         pool.borrow(USDT, 1, 2, 0, DAI_BORROWER_WALLET);
-        vm.expectRevert(bytes('28'));  // RESERVE_FROZEN
+        vm.expectRevert(bytes(Errors.RESERVE_FROZEN));
         pool.borrow(GNO, 1, 2, 0, DAI_BORROWER_WALLET);
-        vm.expectRevert(bytes('30'));
+        vm.expectRevert(bytes(Errors.BORROWING_NOT_ENABLED));
         pool.borrow(SDAI, 1, 2, 0, DAI_BORROWER_WALLET);
 
         vm.stopPrank();
