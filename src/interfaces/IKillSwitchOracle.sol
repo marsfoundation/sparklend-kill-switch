@@ -89,7 +89,7 @@ interface IKillSwitchOracle {
     function disableOracle(address oracle) external;
 
     /**
-     * @dev Resets the contract, clearing all set oracles and thresholds.
+     * @dev Resets the trigger, allowing the kill switch to be triggered again.
      */
     function reset() external;
 
