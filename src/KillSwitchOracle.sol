@@ -94,17 +94,18 @@ contract KillSwitchOracle is IKillSwitchOracle, Ownable {
     /******************************************************************************************************************/
 
     function trigger(address oracle) external override {
-        require(!triggered, "KillSwitchOracle/already-triggered");
+        // Once triggered, the kill switch can be used to disable all borrowing until it is reset
+        if (!triggered) {
+            uint256 threshold = oracleThresholds[oracle];
+            require(threshold != 0, "KillSwitchOracle/oracle-does-not-exist");
 
-        uint256 threshold = oracleThresholds[oracle];
-        require(threshold != 0, "KillSwitchOracle/oracle-does-not-exist");
+            int256 price = AggregatorInterface(oracle).latestAnswer();
+            require(price > 0,                   "KillSwitchOracle/invalid-price");
+            require(uint256(price) <= threshold, "KillSwitchOracle/price-above-threshold");
 
-        int256 price = AggregatorInterface(oracle).latestAnswer();
-        require(price > 0,                   "KillSwitchOracle/invalid-price");
-        require(uint256(price) <= threshold, "KillSwitchOracle/price-above-threshold");
-
-        triggered = true;
-        emit Trigger(oracle, threshold, uint256(price));
+            triggered = true;
+            emit Trigger(oracle, threshold, uint256(price));
+        }
 
         address[] memory assets = pool.getReservesList();
         for (uint256 i = 0; i < assets.length; i++) {

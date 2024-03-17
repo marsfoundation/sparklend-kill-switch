@@ -89,7 +89,8 @@ interface IKillSwitchOracle {
     function disableOracle(address oracle) external;
 
     /**
-     * @dev Resets the trigger, allowing the kill switch to be triggered again.
+     * @dev Reset the module so that the kill switch can only be triggered if one of
+     *      the oracles is below the threshold.
      */
     function reset() external;
 
@@ -132,9 +133,10 @@ interface IKillSwitchOracle {
      * @notice Permissionless function to trigger the kill switch.
      * @dev    If the kill switch has not been triggered, the oracle threshold has been defined,
      *         and the oracle is below the threshold, the kill switch is triggered. This will
-     *         disable borrowing on all assets. This function can only be called once and will
-     *         require a call to `reset()` by the owner to be called again.
-     * @param  oracle The address of the oracle which is below the threshold.
+     *         disable borrowing on all assets. If the kill switch has been triggered, this
+     *         function will allow disabling borrowing on all assets until the kill switch is reset.
+     * @param  oracle The address of the oracle which is below the threshold. If the kill switch
+     *                has been triggered, this parameter is ignored.
      */
     function trigger(address oracle) external;
 
