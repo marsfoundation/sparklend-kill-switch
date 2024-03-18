@@ -379,6 +379,14 @@ contract KillSwitchOracleTriggerTests is KillSwitchOracleTestBase {
         emit BorrowDisabled(asset5);
         vm.prank(randomAddress);  // Permissionless call
         killSwitchOracle.trigger(address(0));  // Second trigger oracle address can be anything
+
+        // Only update what has changed
+        reserves[4].active           = true;
+        reserves[4].borrowingEnabled = false;
+
+        for (uint256 i = 0; i < reserves.length; i++) {
+            _assertReserve(reserves[i]);
+        }
     }
 
     function _initReserve(ReserveConfigParams memory params) internal {
