@@ -264,15 +264,6 @@ contract KillSwitchOracleTriggerTests is KillSwitchOracleTestBase {
 
     using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
 
-    function test_trigger_alreadyTriggered() public {
-        vm.prank(owner);
-        killSwitchOracle.setOracle(address(oracle1), 1e8);
-        killSwitchOracle.trigger(address(oracle1));
-
-        vm.expectRevert("KillSwitchOracle/already-triggered");
-        killSwitchOracle.trigger(address(oracle1));
-    }
-
     function test_trigger_doesNotExist() public {
         vm.prank(owner);
         vm.expectRevert("KillSwitchOracle/oracle-does-not-exist");
@@ -310,43 +301,43 @@ contract KillSwitchOracleTriggerTests is KillSwitchOracleTestBase {
         ReserveConfigParams[5] memory reserves = [
             // Asset with borrow enabled (Ex. ETH, wstETH, DAI)
             ReserveConfigParams({
-                asset:                asset1,
-                active:               true,
-                frozen:               false,
-                paused:               false,
-                borrowingEnabled:     true
+                asset:            asset1,
+                active:           true,
+                frozen:           false,
+                paused:           false,
+                borrowingEnabled: true
             }),
             // Collateral-only asset (Ex. sDAI)
             ReserveConfigParams({
-                asset:                asset2,
-                active:               true,
-                frozen:               false,
-                paused:               false,
-                borrowingEnabled:     false
+                asset:            asset2,
+                active:           true,
+                frozen:           false,
+                paused:           false,
+                borrowingEnabled: false
             }),
             // Frozen asset (Ex. GNO)
             ReserveConfigParams({
-                asset:                asset3,
-                active:               true,
-                frozen:               true,
-                paused:               false,
-                borrowingEnabled:     true
+                asset:            asset3,
+                active:           true,
+                frozen:           true,
+                paused:           false,
+                borrowingEnabled: true
             }),
             // Paused asset
             ReserveConfigParams({
-                asset:                asset4,
-                active:               true,
-                frozen:               false,
-                paused:               true,
-                borrowingEnabled:     true
+                asset:            asset4,
+                active:           true,
+                frozen:           false,
+                paused:           true,
+                borrowingEnabled: true
             }),
             // Inactive asset
             ReserveConfigParams({
-                asset:                asset5,
-                active:               false,
-                frozen:               false,
-                paused:               false,
-                borrowingEnabled:     false
+                asset:            asset5,
+                active:           false,
+                frozen:           false,
+                paused:           false,
+                borrowingEnabled: false
             })
         ];
 
@@ -369,6 +360,29 @@ contract KillSwitchOracleTriggerTests is KillSwitchOracleTestBase {
 
         // Only update what has changed
         reserves[0].borrowingEnabled = false;
+
+        for (uint256 i = 0; i < reserves.length; i++) {
+            _assertReserve(reserves[i]);
+        }
+
+        // New reserve has been added after the trigger (perhaps a pending spell)
+        _initReserve(ReserveConfigParams({
+            asset:            asset5,
+            active:           true,
+            frozen:           false,
+            paused:           false,
+            borrowingEnabled: true
+        }));
+
+        // Should be able to disable borrowing on this new asset
+        vm.expectEmit(address(killSwitchOracle));
+        emit BorrowDisabled(asset5);
+        vm.prank(randomAddress);  // Permissionless call
+        killSwitchOracle.trigger(address(0));  // Second trigger oracle address can be anything
+
+        // Only update what has changed
+        reserves[4].active           = true;
+        reserves[4].borrowingEnabled = false;
 
         for (uint256 i = 0; i < reserves.length; i++) {
             _assertReserve(reserves[i]);
