@@ -11,7 +11,7 @@ This module registers pegged asset oracles and will trigger a lockdown mode for 
 
 The reasoning behind this is to limit the damage in the event of extreme market conditions. Depegging assets may be temporary, but there is no harm in an excess of caution in these situations. Users can still top up collateral and repay/withdraw in lockdown mode. This just prevents further borrowing to limit downside exposure to lenders.
 
-The kill switch can only be triggered once and then needs to be reset by the Spark Proxy under a 2 day delay. MKR holders will also need to re-activate the market if it is deemed safe to do so.
+The kill switch can triggered as many times as needed, but needs to be reset by the Spark Proxy under the Governance Security Module delay. MKR holders will also need to re-activate the market if it is deemed safe to do so.
 
 ## Usage
 
